@@ -1,19 +1,16 @@
 package com.qrlib;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ReedSolomonEncoder {
 
-    private int numberOfECCodewords = 2;
+    private int numberOfECCodewords = 10; // V1
+    private final int totalDataCapacity = 16; // V1
     private GFPolynomial generatorPolynomial;
 
-    public ReedSolomonEncoder(int numberOfECCodewords) {
-        this.numberOfECCodewords = numberOfECCodewords;
-        createGeneratorPolynomial();
-    }
-
-    public void setNumberOfECCodewords(int numberOfECCodewords) {
-        this.numberOfECCodewords = numberOfECCodewords;
+    public ReedSolomonEncoder() {
         createGeneratorPolynomial();
     }
 
@@ -27,28 +24,52 @@ public class ReedSolomonEncoder {
     }
 
     public int[] encode(String data) {
-        int[] dataCoefficients = getDataCoefficients(data);
+        int[] dataCodewords = formatInputData(data);
 
-        int[] paddedCoefficients = new int[dataCoefficients.length + numberOfECCodewords];
-        System.arraycopy(dataCoefficients, 0, paddedCoefficients, 0, dataCoefficients.length);
+        int[] paddedCoefficients = new int[dataCodewords.length + numberOfECCodewords];
+        System.arraycopy(dataCodewords, 0, paddedCoefficients, 0, dataCodewords.length);
 
         GFPolynomial dataPoly = new GFPolynomial(paddedCoefficients);
         GFPolynomial ECC = dataPoly.getRemainder(generatorPolynomial);
 
-        int[] encodedData = new int[dataCoefficients.length + numberOfECCodewords];
-        System.arraycopy(dataCoefficients, 0, encodedData, 0, dataCoefficients.length);
-        System.arraycopy(ECC.getCoefficients(), 0, encodedData, dataCoefficients.length, numberOfECCodewords);
+        int[] encodedData = new int[dataCodewords.length + numberOfECCodewords];
+        System.arraycopy(dataCodewords, 0, encodedData, 0, dataCodewords.length);
+        System.arraycopy(ECC.getCoefficients(), 0, encodedData, dataCodewords.length, numberOfECCodewords);
         return encodedData;
     }
 
-    private int[] getDataCoefficients(String data) {
-        byte[] dataBytes = data.getBytes(StandardCharsets.UTF_8);
+    private int[] formatInputData(String data) {
+        byte[] rawBytes = data.getBytes(StandardCharsets.UTF_8);
+        StringBuilder bits = new StringBuilder();
 
-        int[] coefficients = new int[dataBytes.length];
-        for (int i = 0; i < dataBytes.length; i++) {
-            coefficients[i] = Byte.toUnsignedInt(dataBytes[i]);
+        bits.append("0100"); // Byte mode indicator
+
+        String lengthBits = Integer.toBinaryString(rawBytes.length);
+        while (lengthBits.length() < 8) lengthBits = "0" + lengthBits;
+        bits.append(lengthBits);
+
+        for (byte b : rawBytes) {
+            String bBits = Integer.toBinaryString(Byte.toUnsignedInt(b));
+            while (bBits.length() < 8) bBits = "0" + bBits;
+            bits.append(bBits);
         }
-        return coefficients;
-    }
 
+        bits.append("0000"); // Byte mode indicator end
+
+        while (bits.length() % 8 != 0) bits.append("0"); // Round to the nearest byte
+
+        List<Integer> codewords = new ArrayList<>();
+        for (int i = 0; i < bits.length(); i += 8) {
+            codewords.add(Integer.parseInt(bits.substring(i, i + 8), 2));
+        }
+
+        // Padding
+        boolean toggle = true;
+        while (codewords.size() < totalDataCapacity) {
+            codewords.add(toggle ? 0xEC : 0x11);
+            toggle = !toggle;
+        }
+
+        return codewords.stream().mapToInt(i -> i).toArray();
+    }
 }
