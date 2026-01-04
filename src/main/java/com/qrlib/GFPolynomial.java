@@ -8,6 +8,13 @@ public class GFPolynomial {
     private static final int[] EXP = new int[512];
     private static final int[] LOG = new int[256];
 
+    public static int[] getEXP() {
+        return EXP;
+    }
+    public static int[] getLOG() {
+        return LOG;
+    }
+
     static {
         int x = 1;
         for (int i = 0; i < 255; i++) {
@@ -27,22 +34,28 @@ public class GFPolynomial {
         this.coefficients = coefficients;
     }
 
-    public double evaluate(double x) {
-        double result = 0.0;
-        for (int i = 0; i < coefficients.length; i++) {
-            result += coefficients[i] * Math.pow(x, i);
-        }
-        return result;
-    }
-
-    public GFPolynomial add(GFPolynomial p) {
-        int maxDegree = Math.max(this.coefficients.length, p.coefficients.length);
+    public GFPolynomial add(GFPolynomial other) {
+        int maxDegree = Math.max(this.coefficients.length, other.coefficients.length);
         int[] resultCoeffs = new int[maxDegree];
 
         for (int i = 0; i < maxDegree; i++) {
-            int coeff1 = i < this.coefficients.length ? this.coefficients[i] : 0;
-            int coeff2 = i < p.coefficients.length ? p.coefficients[i] : 0;
-            resultCoeffs[i] = coeff1 ^ coeff2;
+            int c1 = (i >= maxDegree - this.coefficients.length) ?
+                    this.coefficients[i - (maxDegree - this.coefficients.length)] : 0;
+            int c2 = (i >= maxDegree - other.coefficients.length) ?
+                    other.coefficients[i - (maxDegree - other.coefficients.length)] : 0;
+            resultCoeffs[i] = c1 ^ c2;
+        }
+
+        return new GFPolynomial(resultCoeffs);
+    }
+
+    public GFPolynomial multiply(GFPolynomial other) {
+        int[] resultCoeffs = new int[this.coefficients.length + other.coefficients.length - 1];
+
+        for (int i = 0; i < this.coefficients.length; i++) {
+            for (int j = 0; j < other.coefficients.length; j++) {
+                resultCoeffs[i + j] ^= multiplyGF(this.coefficients[i], other.coefficients[j]);
+            }
         }
 
         return new GFPolynomial(resultCoeffs);
