@@ -1,17 +1,14 @@
 package com.qrlib;
 
+import com.qrlib.dev.QRCode;
+import com.qrlib.dev.QRCodeGenerator;
+
 import java.util.Arrays;
 
 public class App {
     public static void main( String[] args ) {
-        ReedSolomonEncoder encoder = new ReedSolomonEncoder();
+        QRCodeGenerator generator = new QRCodeGenerator();
 
-        int[] encodedMessage = encoder.encode("Teste");
-
-        System.out.println(Arrays.toString(encodedMessage));
-
-        MatrixData matrixData = MatrixDataGenerator.generateMatrixData(encodedMessage);
-        matrixData.printImage();
-        matrixData.printChars();
+        QRCode code = generator.generate();
     }
 }
