@@ -1,4 +1,4 @@
-package com.qrlib;
+package com.qrlib.encoding;
 
 import java.util.Arrays;
 
@@ -11,6 +11,7 @@ public class GFPolynomial {
     public static int[] getEXP() {
         return EXP;
     }
+
     public static int[] getLOG() {
         return LOG;
     }
@@ -39,10 +40,12 @@ public class GFPolynomial {
         int[] resultCoeffs = new int[maxDegree];
 
         for (int i = 0; i < maxDegree; i++) {
-            int c1 = (i >= maxDegree - this.coefficients.length) ?
-                    this.coefficients[i - (maxDegree - this.coefficients.length)] : 0;
-            int c2 = (i >= maxDegree - other.coefficients.length) ?
-                    other.coefficients[i - (maxDegree - other.coefficients.length)] : 0;
+            int c1 = (i >= maxDegree - this.coefficients.length)
+                    ? this.coefficients[i - (maxDegree - this.coefficients.length)]
+                    : 0;
+            int c2 = (i >= maxDegree - other.coefficients.length)
+                    ? other.coefficients[i - (maxDegree - other.coefficients.length)]
+                    : 0;
             resultCoeffs[i] = c1 ^ c2;
         }
 
@@ -79,7 +82,8 @@ public class GFPolynomial {
     }
 
     private static int multiplyGF(int a, int b) {
-        if (a == 0 || b == 0) return 0;
+        if (a == 0 || b == 0)
+            return 0;
         return EXP[LOG[a] + LOG[b]];
     }
 

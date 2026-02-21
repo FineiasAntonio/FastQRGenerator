@@ -1,4 +1,4 @@
-package com.qrlib.common;
+package com.qrlib.config;
 
 public enum QRCodeVersion {
     V1(1),

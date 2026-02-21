@@ -1,4 +1,4 @@
-package com.qrlib;
+package com.qrlib.matrix;
 
 public class MatrixData {
 
@@ -91,6 +91,4 @@ public class MatrixData {
             System.out.println();
         }
     }
-
-
 }
