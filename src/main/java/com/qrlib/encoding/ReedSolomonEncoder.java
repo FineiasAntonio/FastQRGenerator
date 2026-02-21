@@ -13,11 +13,14 @@ public class ReedSolomonEncoder {
     private static final int PADDING_CODEWORD_B = 0x11;
 
     private final int numberOfECCodewords;
-    private final int totalDataCapacity = 16;
+    private final int totalDataCapacity;
+    private final int version;
     private GFPolynomial generatorPolynomial;
 
-    public ReedSolomonEncoder(int numberOfECCodewords) {
+    public ReedSolomonEncoder(int totalDataCapacity, int numberOfECCodewords, int version) {
+        this.totalDataCapacity = totalDataCapacity;
         this.numberOfECCodewords = numberOfECCodewords;
+        this.version = version;
         createGeneratorPolynomial();
     }
 
@@ -51,8 +54,9 @@ public class ReedSolomonEncoder {
 
         bits.append(BYTE_MODE_INDICATOR);
 
+        int characterCountLength = version < 10 ? 8 : 16;
         String lengthBits = Integer.toBinaryString(rawBytes.length);
-        while (lengthBits.length() < BITS_PER_BYTE)
+        while (lengthBits.length() < characterCountLength)
             lengthBits = "0" + lengthBits;
         bits.append(lengthBits);
 
@@ -63,7 +67,13 @@ public class ReedSolomonEncoder {
             bits.append(bBits);
         }
 
-        bits.append(TERMINATOR);
+        // bits.append(TERMINATOR);
+        int remainBits = (totalDataCapacity * BITS_PER_BYTE) - bits.length();
+        int terminatorSize = Math.min(4, remainBits);
+
+        for (int i = 0; i < terminatorSize; i++) {
+            bits.append("0");
+        }
 
         while (bits.length() % BITS_PER_BYTE != 0)
             bits.append("0");

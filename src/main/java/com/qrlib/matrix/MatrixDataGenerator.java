@@ -294,7 +294,7 @@ public class MatrixDataGenerator {
 
         int[] bits = new int[15];
         for (int i = 0; i < 15; i++) {
-            bits[i] = (formatInfo >> (14 - i)) & 1;
+            bits[i] = (formatInfo >> i) & 1;
         }
         return bits;
     }
