@@ -1,11 +1,18 @@
 package com.qrlib.template;
 
-public abstract class QRCodeGeneratorFactory {
+import com.qrlib.config.ECCLevel;
+import com.qrlib.config.QRCodeVersion;
+import com.qrlib.matrix.MatrixData;
+import com.qrlib.matrix.MatrixDataGenerator;
 
-    private
+public class QRCodeGeneratorFactory {
 
-    public QRCodeGeneratorFactory(int size) {
-        this.gridData = new int[size][size];
+    public static QRCodeTemplate createTemplate(QRCodeVersion version, ECCLevel eccLevel) {
+        int size = 21 + (version.getValue() - 1) * 4;
+
+        MatrixData matrixData = new MatrixData(size);
+        MatrixDataGenerator.placeCommonPatterns(matrixData);
+
+        return new QRCodeTemplate(matrixData, version, eccLevel, size);
     }
-
 }

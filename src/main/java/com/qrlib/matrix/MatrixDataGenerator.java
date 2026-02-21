@@ -1,22 +1,18 @@
-package com.qrlib;
+package com.qrlib.matrix;
+
+import com.qrlib.template.QRCodeTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MatrixDataGenerator {
 
-    private static final MatrixData BLANK_MODEL = new MatrixData(21);
-
-    static {
-        placeCommonPatterns(BLANK_MODEL);
-    }
-
-    public static MatrixData generateMatrixData(int[] inputData) {
+    public static MatrixData generateMatrixData(QRCodeTemplate template, int[] inputData) {
         List<Integer> bitstream = convertToBitstream(inputData);
 
-        MatrixData matrixData = new MatrixData(BLANK_MODEL);
+        MatrixData matrixData = new MatrixData(template.getMatrixData());
 
-        int size = 21;
+        int size = template.getSize();
         int bitIndex = 0;
         boolean upwards = true;
 
@@ -24,7 +20,8 @@ public class MatrixDataGenerator {
         int[][] matrix = matrixData.getMatrix();
 
         for (int col = size - 1; col > 0; col -= 2) {
-            if (col == 6) col--;
+            if (col == 6)
+                col--;
 
             for (int i = 0; i < size; i++) {
                 int row = upwards ? (size - 1 - i) : i;
@@ -60,7 +57,7 @@ public class MatrixDataGenerator {
         return matrixData;
     }
 
-    private static void placeCommonPatterns(MatrixData matrixData) {
+    public static void placeCommonPatterns(MatrixData matrixData) {
         int size = matrixData.getMatrix().length;
         int[][] matrix = matrixData.getMatrix();
         boolean[][] reserved = matrixData.getReserved();
@@ -110,8 +107,10 @@ public class MatrixDataGenerator {
     private static void drawTimingPattern(int[][] matrix, boolean[][] reserved) {
         int size = matrix.length;
         for (int i = 8; i < size - 8; i++) {
-            if (!reserved[6][i]) setReserved(matrix, reserved, 6, i, (i % 2 == 0) ? 1 : 0);
-            if (!reserved[i][6]) setReserved(matrix, reserved, i, 6, (i % 2 == 0) ? 1 : 0);
+            if (!reserved[6][i])
+                setReserved(matrix, reserved, 6, i, (i % 2 == 0) ? 1 : 0);
+            if (!reserved[i][6])
+                setReserved(matrix, reserved, i, 6, (i % 2 == 0) ? 1 : 0);
         }
     }
 
@@ -132,14 +131,12 @@ public class MatrixDataGenerator {
     }
 
     private static List<Integer> convertToBitstream(int[] data) {
-        System.out.println(data[1]);
         List<Integer> bits = new ArrayList<>();
         for (int b : data) {
             for (int i = 7; i >= 0; i--) {
                 bits.add((b >> i) & 1);
             }
         }
-        System.out.println(bits.get(1));
         return bits;
     }
 
@@ -148,16 +145,17 @@ public class MatrixDataGenerator {
         int size = matrix.length;
 
         // Bits para Nível M, Máscara 0 (oficial: BCH 15,5 + XOR 101010000010010)
-        int[] formatBits = {1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0};
+        int[] formatBits = { 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0 };
 
         // Sequência 1: Ao redor do Finder Pattern do topo-esquerdo
         // (8,0) até (8,8) e (7,8) até (0,8)
         int[][] pos1 = {
-                {8,0}, {8,1}, {8,2}, {8,3}, {8,4}, {8,5}, {8,7}, {8,8}, // Horizontal
-                {7,8}, {5,8}, {4,8}, {3,8}, {2,8}, {1,8}, {0,8}         // Vertical
+                { 8, 0 }, { 8, 1 }, { 8, 2 }, { 8, 3 }, { 8, 4 }, { 8, 5 }, { 8, 7 }, { 8, 8 }, // Horizontal
+                { 7, 8 }, { 5, 8 }, { 4, 8 }, { 3, 8 }, { 2, 8 }, { 1, 8 }, { 0, 8 } // Vertical
         };
 
-        // Sequência 2: Abaixo do Finder Pattern do topo-direito e à direita do inferior-esquerdo
+        // Sequência 2: Abaixo do Finder Pattern do topo-direito e à direita do
+        // inferior-esquerdo
         // (8, size-1) até (8, size-8) e (size-7, 8) até (size-1, 8)
         for (int i = 0; i < 15; i++) {
             // Coloca a primeira sequência

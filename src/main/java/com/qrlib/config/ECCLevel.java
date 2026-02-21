@@ -1,4 +1,4 @@
-package com.qrlib.common;
+package com.qrlib.config;
 
 public enum ECCLevel {
     L, M, Q, H
