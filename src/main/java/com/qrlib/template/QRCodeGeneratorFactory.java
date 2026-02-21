@@ -11,7 +11,7 @@ public class QRCodeGeneratorFactory {
         int size = 21 + (version.getValue() - 1) * 4;
 
         MatrixData matrixData = new MatrixData(size);
-        MatrixDataGenerator.placeCommonPatterns(matrixData);
+        MatrixDataGenerator.placeCommonPatterns(matrixData, version);
 
         return new QRCodeTemplate(matrixData, version, eccLevel, size);
     }

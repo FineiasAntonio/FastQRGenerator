@@ -2,18 +2,51 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.qrlib</groupId>
+  <groupId>io.github.fineiasantonio</groupId>
   <artifactId>fastqrgenerator</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>0.0.1-alpha</version>
   <packaging>jar</packaging>
 
   <name>FastQRGenerator</name>
   <description>A fast and easy-to-use library for generating QR Codes in Java.</description>
-  <url>http://maven.apache.org</url>
+  <url>https://github.com/FineiasAntonio/FastQRGenerator</url>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>fineias</id>
+      <name>Fineias Antonio</name>
+      <email>fineias1187@gmail.com</email>
+      <url>https://github.com/FineiasAntonio</url>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git://github.com/FineiasAntonio/FastQRGenerator.git</connection>
+    <developerConnection>scm:git:ssh://github.com:FineiasAntonio/FastQRGenerator.git</developerConnection>
+    <url>https://github.com/FineiasAntonio/FastQRGenerator/tree/main</url>
+  </scm>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>8</maven.compiler.source>
+    <maven.compiler.target>8</maven.compiler.target>
   </properties>
+
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <name>GitHub Packages</name>
+      <url>https://maven.pkg.github.com/FineiasAntonio/FastQRGenerator</url>
+    </repository>
+  </distributionManagement>
 
   <dependencies>
     <dependency>
@@ -23,4 +56,60 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.3.1</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals><goal>jar-no-fork</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.6.3</version>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals><goal>jar</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals><goal>sign</goal></goals>
+            <configuration>
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.sonatype.central</groupId>
+        <artifactId>central-publishing-maven-plugin</artifactId>
+        <version>0.4.0</version>
+        <extensions>true</extensions>
+        <configuration>
+          <publishingServerId>central</publishingServerId>
+          <tokenAuth>true</tokenAuth>
+          <autoPublish>true</autoPublish>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

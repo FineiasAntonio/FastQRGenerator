@@ -12,7 +12,7 @@ public class QRCodeGenerator {
 
     public QRCodeGenerator(QRCodeTemplate template) {
         this.template = template;
-        this.encoder = new ReedSolomonEncoder();
+        this.encoder = new ReedSolomonEncoder(template.getEccLevel().getNumberOfECCodewords());
     }
 
     public QRCode generate(String data) {

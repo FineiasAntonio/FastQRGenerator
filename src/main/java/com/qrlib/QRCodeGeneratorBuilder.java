@@ -28,7 +28,7 @@ public class QRCodeGeneratorBuilder {
 
     public QRCodeGenerator build() {
         if (version == null) {
-            throw new IllegalStateException("QRCodeVersion é obrigatório");
+            throw new IllegalStateException("QRCodeVersion is required");
         }
         if (eccLevel == null) {
             eccLevel = ECCLevel.M;

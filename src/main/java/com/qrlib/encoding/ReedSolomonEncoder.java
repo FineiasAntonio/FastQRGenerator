@@ -6,11 +6,18 @@ import java.util.List;
 
 public class ReedSolomonEncoder {
 
-    private int numberOfECCodewords = 10; // V1
-    private final int totalDataCapacity = 16; // V1
+    private static final String BYTE_MODE_INDICATOR = "0100";
+    private static final String TERMINATOR = "0000";
+    private static final int BITS_PER_BYTE = 8;
+    private static final int PADDING_CODEWORD_A = 0xEC;
+    private static final int PADDING_CODEWORD_B = 0x11;
+
+    private final int numberOfECCodewords;
+    private final int totalDataCapacity = 16;
     private GFPolynomial generatorPolynomial;
 
-    public ReedSolomonEncoder() {
+    public ReedSolomonEncoder(int numberOfECCodewords) {
+        this.numberOfECCodewords = numberOfECCodewords;
         createGeneratorPolynomial();
     }
 
@@ -42,34 +49,33 @@ public class ReedSolomonEncoder {
         byte[] rawBytes = data.getBytes(StandardCharsets.UTF_8);
         StringBuilder bits = new StringBuilder();
 
-        bits.append("0100"); // Byte mode indicator
+        bits.append(BYTE_MODE_INDICATOR);
 
         String lengthBits = Integer.toBinaryString(rawBytes.length);
-        while (lengthBits.length() < 8)
+        while (lengthBits.length() < BITS_PER_BYTE)
             lengthBits = "0" + lengthBits;
         bits.append(lengthBits);
 
         for (byte b : rawBytes) {
             String bBits = Integer.toBinaryString(Byte.toUnsignedInt(b));
-            while (bBits.length() < 8)
+            while (bBits.length() < BITS_PER_BYTE)
                 bBits = "0" + bBits;
             bits.append(bBits);
         }
 
-        bits.append("0000"); // Byte mode indicator end
+        bits.append(TERMINATOR);
 
-        while (bits.length() % 8 != 0)
-            bits.append("0"); // Round to the nearest byte
+        while (bits.length() % BITS_PER_BYTE != 0)
+            bits.append("0");
 
         List<Integer> codewords = new ArrayList<>();
-        for (int i = 0; i < bits.length(); i += 8) {
-            codewords.add(Integer.parseInt(bits.substring(i, i + 8), 2));
+        for (int i = 0; i < bits.length(); i += BITS_PER_BYTE) {
+            codewords.add(Integer.parseInt(bits.substring(i, i + BITS_PER_BYTE), 2));
         }
 
-        // Padding
         boolean toggle = true;
         while (codewords.size() < totalDataCapacity) {
-            codewords.add(toggle ? 0xEC : 0x11);
+            codewords.add(toggle ? PADDING_CODEWORD_A : PADDING_CODEWORD_B);
             toggle = !toggle;
         }
 
