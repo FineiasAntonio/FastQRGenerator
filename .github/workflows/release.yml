@@ -70,7 +70,7 @@ jobs:
           mvn versions:set -DnewVersion=$VERSION -B
 
       - name: Publish to GitHub Packages
-        run: mvn clean deploy -B -DskipTests
+        run: mvn clean deploy -B -DskipTests -Dgpg.skip=true
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
