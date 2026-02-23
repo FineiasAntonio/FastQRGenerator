@@ -9,7 +9,6 @@ import java.util.List;
 
 public class MatrixDataGenerator {
 
-    private static final int MASK_PATTERN = 0;
     private static final int FORMAT_XOR_MASK = 0x5412;
     private static final int FORMAT_GENERATOR_POLYNOMIAL = 0x537;
     private static final int VERSION_GENERATOR_POLYNOMIAL = 0x1F25;
@@ -63,14 +62,37 @@ public class MatrixDataGenerator {
     public static MatrixData generateMatrixData(QRCodeTemplate template, int[] inputData) {
         List<Integer> bitstream = convertToBitstream(inputData);
 
-        MatrixData matrixData = new MatrixData(template.getMatrixData());
+        MatrixData bestMatrixData = null;
+        int bestPenalty = Integer.MAX_VALUE;
 
-        int size = template.getSize();
+        for (int mask = 0; mask < 8; mask++) {
+            MatrixData matrixData = new MatrixData(template.getMatrixData());
+            applyDataAndMask(matrixData, bitstream, mask);
+
+            writeFormatInformation(matrixData, template.getEccLevel(), mask);
+
+            int version = template.getVersion().getValue();
+            if (version >= 7) {
+                writeVersionInformation(matrixData, version);
+            }
+
+            int penalty = calculatePenalty(matrixData.getMatrix());
+            if (penalty < bestPenalty) {
+                bestPenalty = penalty;
+                bestMatrixData = matrixData;
+            }
+        }
+
+        return bestMatrixData;
+    }
+
+    private static void applyDataAndMask(MatrixData matrixData, List<Integer> bitstream, int maskPattern) {
+        int size = matrixData.getMatrix().length;
+        int[][] matrix = matrixData.getMatrix();
+        boolean[][] reserved = matrixData.getReserved();
+
         int bitIndex = 0;
         boolean upwards = true;
-
-        boolean[][] reserved = matrixData.getReserved();
-        int[][] matrix = matrixData.getMatrix();
 
         for (int col = size - 1; col > 0; col -= 2) {
             if (col == 6)
@@ -83,33 +105,39 @@ public class MatrixDataGenerator {
                     int currentCol = col - c;
 
                     if (!reserved[row][currentCol]) {
-                        if (bitIndex < bitstream.size()) {
-                            int bit = bitstream.get(bitIndex++);
-                            if ((row + currentCol) % 2 == 0) {
-                                bit ^= 1;
-                            }
-                            matrix[row][currentCol] = bit;
-                        } else {
-                            int bit = 0;
-                            if ((row + currentCol) % 2 == 0) {
-                                bit ^= 1;
-                            }
-                            matrix[row][currentCol] = bit;
+                        int bit = (bitIndex < bitstream.size()) ? bitstream.get(bitIndex++) : 0;
+                        if (applyMask(row, currentCol, maskPattern)) {
+                            bit ^= 1;
                         }
+                        matrix[row][currentCol] = bit;
                     }
                 }
             }
             upwards = !upwards;
         }
+    }
 
-        writeFormatInformation(matrixData, template.getEccLevel(), MASK_PATTERN);
-
-        int version = template.getVersion().getValue();
-        if (version >= 7) {
-            writeVersionInformation(matrixData, version);
+    private static boolean applyMask(int r, int c, int mask) {
+        switch (mask) {
+            case 0:
+                return (r + c) % 2 == 0;
+            case 1:
+                return r % 2 == 0;
+            case 2:
+                return c % 3 == 0;
+            case 3:
+                return (r + c) % 3 == 0;
+            case 4:
+                return (r / 2 + c / 3) % 2 == 0;
+            case 5:
+                return (r * c) % 2 + (r * c) % 3 == 0;
+            case 6:
+                return ((r * c) % 2 + (r * c) % 3) % 2 == 0;
+            case 7:
+                return ((r + c) % 2 + (r * c) % 3) % 2 == 0;
+            default:
+                return false;
         }
-
-        return matrixData;
     }
 
     // ======================== PADRÕES COMUNS ========================
@@ -364,5 +392,104 @@ public class MatrixDataGenerator {
             }
         }
         return bits;
+    }
+
+    // ======================== PENALTY CALCULATION ========================
+
+    private static int calculatePenalty(int[][] matrix) {
+        int penalty = 0;
+        int size = matrix.length;
+
+        // Rule 1: 5 or more consecutive modules of the same color
+        for (int i = 0; i < size; i++) {
+            penalty += evaluateRule1(matrix[i]);
+            int[] col = new int[size];
+            for (int j = 0; j < size; j++)
+                col[j] = matrix[j][i];
+            penalty += evaluateRule1(col);
+        }
+
+        // Rule 2: 2x2 blocks of the same color
+        for (int r = 0; r < size - 1; r++) {
+            for (int c = 0; c < size - 1; c++) {
+                int color = matrix[r][c];
+                if (color == matrix[r][c + 1] && color == matrix[r + 1][c] && color == matrix[r + 1][c + 1]) {
+                    penalty += 3;
+                }
+            }
+        }
+
+        // Rule 3: Finder pattern 1:1:3:1:1 with 4 light modules on either side
+        for (int r = 0; r < size; r++) {
+            for (int c = 0; c < size; c++) {
+                if (c <= size - 7) {
+                    if (isFinderPattern1D(matrix[r], c, size))
+                        penalty += 40;
+                }
+                if (r <= size - 7) {
+                    int[] col = new int[size];
+                    for (int i = 0; i < size; i++)
+                        col[i] = matrix[i][c];
+                    if (isFinderPattern1D(col, r, size))
+                        penalty += 40;
+                }
+            }
+        }
+
+        // Rule 4: Proportion of dark modules
+        int darkModules = 0;
+        for (int[] row : matrix) {
+            for (int val : row) {
+                darkModules += val;
+            }
+        }
+        double proportion = (double) darkModules * 100.0 / (size * size);
+        int deviation = (int) (Math.abs(proportion - 50.0) / 5.0);
+        penalty += deviation * 10;
+
+        return penalty;
+    }
+
+    private static int evaluateRule1(int[] line) {
+        int penalty = 0;
+        int runColor = line[0];
+        int runLength = 1;
+        for (int i = 1; i < line.length; i++) {
+            if (line[i] == runColor) {
+                runLength++;
+            } else {
+                if (runLength >= 5)
+                    penalty += (runLength - 2); // 3 + (runLength - 5)
+                runColor = line[i];
+                runLength = 1;
+            }
+        }
+        if (runLength >= 5)
+            penalty += (runLength - 2);
+        return penalty;
+    }
+
+    private static boolean isFinderPattern1D(int[] line, int start, int size) {
+        if (line[start] != 1 || line[start + 1] != 0 || line[start + 2] != 1 || line[start + 3] != 1 ||
+                line[start + 4] != 1 || line[start + 5] != 0 || line[start + 6] != 1)
+            return false;
+
+        // Check for 4 light modules before
+        boolean before = true;
+        for (int i = 1; i <= 4; i++) {
+            if (start - i >= 0 && line[start - i] == 1) {
+                before = false;
+                break;
+            }
+        }
+        // Check for 4 light modules after
+        boolean after = true;
+        for (int i = 1; i <= 4; i++) {
+            if (start + 6 + i < size && line[start + 6 + i] == 1) {
+                after = false;
+                break;
+            }
+        }
+        return before || after;
     }
 }
