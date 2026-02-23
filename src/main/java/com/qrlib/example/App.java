@@ -10,8 +10,8 @@ import com.qrlib.config.QRCodeVersion;
 public class App {
     public static void main(String[] args) {
         QRCodeGenerator generator = new QRCodeGeneratorBuilder()
-                .version(QRCodeVersion.V2)
-                .ECCLevel(ECCLevel.L)
+                .version(QRCodeVersion.V10)
+                .ECCLevel(ECCLevel.H)
                 .build();
 
         QRCode code = generator.generate("https://www.google.com");

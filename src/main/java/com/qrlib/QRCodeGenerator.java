@@ -14,8 +14,7 @@ public class QRCodeGenerator {
     public QRCodeGenerator(QRCodeTemplate template) {
         this.template = template;
         QRCodeCapacity capacity = QRCodeCapacity.getCapacity(template.getVersion(), template.getEccLevel());
-        this.encoder = new ReedSolomonEncoder(capacity.getTotalDataCodewords(), capacity.getEcCodewords(),
-                template.getVersion().getValue());
+        this.encoder = new ReedSolomonEncoder(capacity, template.getVersion().getValue());
     }
 
     public QRCode generate(String data) {
