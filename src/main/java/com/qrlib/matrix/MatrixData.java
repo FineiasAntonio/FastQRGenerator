@@ -77,18 +77,4 @@ public class MatrixData {
             System.out.println();
         }
     }
-
-    public void printChars() {
-        int size = data.length;
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                if (data[i][j] == 1) {
-                    System.out.print(BLACK_CHAR + SQUARE + SQUARE + RESET);
-                } else {
-                    System.out.print(WHITE_CHAR + SQUARE + SQUARE + RESET);
-                }
-            }
-            System.out.println();
-        }
-    }
 }
