@@ -13,7 +13,7 @@ public class MatrixDataGenerator {
     private static final int FORMAT_GENERATOR_POLYNOMIAL = 0x537;
     private static final int VERSION_GENERATOR_POLYNOMIAL = 0x1F25;
 
-    // Remainder bits por versão (ISO 18004, Tabela 1) — indexado por versão-1
+    // Remainder bits by version (ISO 18004, Table 1) — indexed by version-1
     private static final int[] REMAINDER_BITS = {
             0, // V1
             7, 7, 7, 7, 7, // V2-V6
@@ -24,9 +24,9 @@ public class MatrixDataGenerator {
             0, 0, 0, 0, 0, 0     // V35-V40
     };
 
-    // Tabela de posições centrais dos alignment patterns (V2-V40) — ISO 18004
+    // Table of central positions of alignment patterns (V2-V40) — ISO 18004
     private static final int[][] ALIGNMENT_POSITIONS = {
-            {}, // V1 — sem alignment
+            {}, // V1 — no alignment
             { 6, 18 }, // V2
             { 6, 22 }, // V3
             { 6, 26 }, // V4
@@ -68,12 +68,10 @@ public class MatrixDataGenerator {
             { 6, 30, 58, 86, 114, 142, 170 }, // V40
     };
 
-    // ======================== GERAÇÃO DE DADOS ========================
-
     public static MatrixData generateMatrixData(QRCodeTemplate template, int[] inputData) {
         List<Integer> bitstream = convertToBitstream(inputData);
 
-        // Adicionar remainder bits (zeros) conforme ISO 18004
+        // Add remainder bits (zeros) according to ISO 18004
         int version = template.getVersion().getValue();
         int remainderCount = REMAINDER_BITS[version - 1];
         for (int i = 0; i < remainderCount; i++) {
@@ -133,9 +131,6 @@ public class MatrixDataGenerator {
             upwards = !upwards;
         }
 
-        if (bitstream.size() >= 3000) { // Only log for higher versions to reduce spam
-            System.out.println("[DEBUG-MATRIX] Bitstream size: " + bitstream.size() + ", placed bits: " + bitIndex);
-        }
     }
 
     private static boolean applyMask(int r, int c, int mask) {
@@ -161,7 +156,7 @@ public class MatrixDataGenerator {
         }
     }
 
-    // ======================== PADRÕES COMUNS ========================
+    // ======================== COMMON PATTERNS ========================
 
     public static void placeCommonPatterns(MatrixData matrixData, QRCodeVersion version) {
         int size = matrixData.getMatrix().length;
