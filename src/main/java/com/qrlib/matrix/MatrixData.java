@@ -35,13 +35,13 @@ public class MatrixData {
     }
 
     public void printImage() {
-        // Cores de fundo ANSI para blocos sólidos
+        // ANSI background colors for solid blocks
         String blackModule = "\u001B[40m  \u001B[0m";
         String whiteModule = "\u001B[107m  \u001B[0m";
 
         int size = data.length;
 
-        // 1. Imprimir Margem Superior (Quiet Zone)
+        // 1. Print Top Margin (Quiet Zone)
         for (int i = 0; i < 2; i++) {
             for (int j = 0; j < size + 4; j++) {
                 System.out.print(whiteModule);
@@ -49,9 +49,9 @@ public class MatrixData {
             System.out.println();
         }
 
-        // 2. Imprimir Matriz com Margens Laterais
+        // 2. Print Matrix with Side Margins
         for (int i = 0; i < size; i++) {
-            // Margem esquerda (2 módulos brancos)
+            // Left margin (2 white modules)
             System.out.print(whiteModule);
             System.out.print(whiteModule);
 
@@ -63,30 +63,16 @@ public class MatrixData {
                 }
             }
 
-            // Margem direita (2 módulos brancos)
+            // Right margin (2 white modules)
             System.out.print(whiteModule);
             System.out.print(whiteModule);
             System.out.println();
         }
 
-        // 3. Imprimir Margem Inferior (Quiet Zone)
+        // 3. Print Bottom Margin (Quiet Zone)
         for (int i = 0; i < 2; i++) {
             for (int j = 0; j < size + 4; j++) {
                 System.out.print(whiteModule);
-            }
-            System.out.println();
-        }
-    }
-
-    public void printChars() {
-        int size = data.length;
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                if (data[i][j] == 1) {
-                    System.out.print(BLACK_CHAR + SQUARE + SQUARE + RESET);
-                } else {
-                    System.out.print(WHITE_CHAR + SQUARE + SQUARE + RESET);
-                }
             }
             System.out.println();
         }

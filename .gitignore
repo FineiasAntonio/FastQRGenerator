@@ -33,3 +33,9 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Compiled Java ###
+*.class
+
+### Generated images ###
+qrcode_*.png

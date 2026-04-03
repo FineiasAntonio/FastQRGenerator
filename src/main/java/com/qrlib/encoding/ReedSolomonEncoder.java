@@ -35,7 +35,7 @@ public class ReedSolomonEncoder {
     public int[] encode(String data) {
         int[] dataCodewords = formatInputData(data);
 
-        // 1. Split data codewords into blocks
+        // Split data codewords into blocks
         int g1Blocks = capacity.getGroup1Blocks();
         int g1Data = capacity.getGroup1DataCodewords();
         int g2Blocks = capacity.getGroup2Blocks();
@@ -46,27 +46,23 @@ public class ReedSolomonEncoder {
         int[][] dataBlocks = new int[totalBlocks][];
         int offset = 0;
 
-        // Group 1 blocks
         for (int i = 0; i < g1Blocks; i++) {
             dataBlocks[i] = new int[g1Data];
             System.arraycopy(dataCodewords, offset, dataBlocks[i], 0, g1Data);
             offset += g1Data;
         }
 
-        // Group 2 blocks
         for (int i = 0; i < g2Blocks; i++) {
             dataBlocks[g1Blocks + i] = new int[g2Data];
             System.arraycopy(dataCodewords, offset, dataBlocks[g1Blocks + i], 0, g2Data);
             offset += g2Data;
         }
 
-        // 2. RS-encode each block independently
         int[][] ecBlocks = new int[totalBlocks][];
         for (int i = 0; i < totalBlocks; i++) {
             ecBlocks[i] = computeECCodewords(dataBlocks[i], ecPerBlock);
         }
 
-        // 3. Interleave data codewords
         List<Integer> result = new ArrayList<>();
 
         int maxDataLen = Math.max(g1Data, g2Data);
@@ -78,7 +74,6 @@ public class ReedSolomonEncoder {
             }
         }
 
-        // 4. Interleave EC codewords
         for (int col = 0; col < ecPerBlock; col++) {
             for (int block = 0; block < totalBlocks; block++) {
                 result.add(ecBlocks[block][col]);
