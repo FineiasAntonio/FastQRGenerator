@@ -2,7 +2,6 @@ package com.qrlib.matrix;
 
 import com.qrlib.config.ECCLevel;
 import com.qrlib.config.QRCodeVersion;
-import com.qrlib.template.QRCodeTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,12 +67,13 @@ public class MatrixDataGenerator {
             { 6, 30, 58, 86, 114, 142, 170 }, // V40
     };
 
-    public static MatrixData generateMatrixData(QRCodeTemplate template, int[] inputData) {
+    public static MatrixData generateMatrixData(MatrixData baseMatrixData, QRCodeVersion version, ECCLevel eccLevel,
+            int[] inputData) {
         List<Integer> bitstream = convertToBitstream(inputData);
 
         // Add remainder bits (zeros) according to ISO 18004
-        int version = template.getVersion().getValue();
-        int remainderCount = REMAINDER_BITS[version - 1];
+        int versionValue = version.getValue();
+        int remainderCount = REMAINDER_BITS[versionValue - 1];
         for (int i = 0; i < remainderCount; i++) {
             bitstream.add(0);
         }
@@ -82,13 +82,13 @@ public class MatrixDataGenerator {
         int bestPenalty = Integer.MAX_VALUE;
 
         for (int mask = 0; mask < 8; mask++) {
-            MatrixData matrixData = new MatrixData(template.getMatrixData());
+            MatrixData matrixData = new MatrixData(baseMatrixData);
             applyDataAndMask(matrixData, bitstream, mask);
 
-            writeFormatInformation(matrixData, template.getEccLevel(), mask);
+            writeFormatInformation(matrixData, eccLevel, mask);
 
-            if (version >= 7) {
-                writeVersionInformation(matrixData, version);
+            if (versionValue >= 7) {
+                writeVersionInformation(matrixData, versionValue);
             }
 
             int penalty = calculatePenalty(matrixData.getMatrix());

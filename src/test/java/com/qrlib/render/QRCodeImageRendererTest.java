@@ -1,0 +1,92 @@
+package com.qrlib.render;
+
+import com.qrlib.config.QRCodeStyleDefinitions;
+import com.qrlib.matrix.MatrixData;
+import org.junit.jupiter.api.Test;
+
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+class QRCodeImageRendererTest {
+
+    @Test
+    void defaultStylePaintsBlackModulesOnWhiteWithFourModuleBorder() {
+        MatrixData matrixData = new MatrixData(3);
+        matrixData.getMatrix()[1][1] = 1;
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder().build();
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 2);
+
+        int expectedSize = (3 + 4 * 2) * 2;
+        assertEquals(expectedSize, image.getWidth());
+        assertEquals(expectedSize, image.getHeight());
+
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(0, 0)); // border
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(8, 8)); // light module (0,0)
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(10, 10)); // dark module (1,1)
+    }
+
+    @Test
+    void customColorsAndBorderThicknessAreApplied() {
+        MatrixData matrixData = new MatrixData(2);
+        matrixData.getMatrix()[0][0] = 1;
+        matrixData.getMatrix()[1][1] = 1;
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .moduleColor("#FF0000")
+                .backgroundColor("#00FF00")
+                .borderColor("#0000FF")
+                .borderThickness(1)
+                .build();
+
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
+
+        int expectedSize = (2 + 1 * 2) * 10;
+        assertEquals(expectedSize, image.getWidth());
+
+        assertEquals(Color.decode("#0000FF").getRGB(), image.getRGB(0, 0)); // border
+        assertEquals(Color.decode("#FF0000").getRGB(), image.getRGB(15, 15)); // dark module (0,0)
+        assertEquals(Color.decode("#00FF00").getRGB(), image.getRGB(25, 15)); // light module (0,1)
+        assertEquals(Color.decode("#FF0000").getRGB(), image.getRGB(25, 25)); // dark module (1,1)
+    }
+
+    @Test
+    void roundedCornersClipTheModuleCorners() {
+        MatrixData matrixData = new MatrixData(1);
+        matrixData.getMatrix()[0][0] = 1;
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .roundedCorners(true)
+                .borderThickness(1)
+                .build();
+
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
+
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(10, 10)); // clipped corner stays background
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(15, 15)); // module center is filled
+    }
+
+    @Test
+    void roundedCornersOnlyAppearAtTheEndsOfConnectedModules() {
+        MatrixData matrixData = new MatrixData(2);
+        matrixData.getMatrix()[0][0] = 1;
+        matrixData.getMatrix()[0][1] = 1;
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .roundedCorners(true)
+                .borderThickness(1)
+                .build();
+
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
+
+        // Seam between the two connected modules stays square, no gap.
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(19, 15));
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(20, 15));
+
+        // Outer ends of the pair are rounded, clipping the far corners.
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(10, 10)); // left end, top-left corner
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(29, 10)); // right end, top-right corner
+    }
+}

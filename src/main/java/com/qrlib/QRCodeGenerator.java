@@ -20,7 +20,8 @@ public class QRCodeGenerator {
     public QRCode generate(String data) {
         QRCodeTemplate workingCopy = template.copy();
         int[] encodedData = encoder.encode(data);
-        MatrixData matrixData = MatrixDataGenerator.generateMatrixData(workingCopy, encodedData);
+        MatrixData matrixData = MatrixDataGenerator.generateMatrixData(workingCopy.getMatrixData(),
+                workingCopy.getVersion(), workingCopy.getEccLevel(), encodedData);
         return new QRCode(matrixData);
     }
 }
