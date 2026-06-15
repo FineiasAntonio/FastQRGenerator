@@ -2,10 +2,10 @@ package com.qrlib.matrix;
 
 public class MatrixData {
 
-    private static final String SQUARE = "█";
-    private static final String BLACK_CHAR = "\u001B[90m";
-    private static final String WHITE_CHAR = "\u001B[97m";
-    private static final String RESET = "\u001B[0m";
+    // ANSI background colors for solid blocks
+    private static final String BLACK_MODULE = "\u001B[40m  \u001B[0m";
+    private static final String WHITE_MODULE = "\u001B[107m  \u001B[0m";
+    private static final int QUIET_ZONE_MODULES = 2;
 
     private int[][] data;
     private boolean[][] reserved;
@@ -35,46 +35,36 @@ public class MatrixData {
     }
 
     public void printImage() {
-        // ANSI background colors for solid blocks
-        String blackModule = "\u001B[40m  \u001B[0m";
-        String whiteModule = "\u001B[107m  \u001B[0m";
-
         int size = data.length;
 
-        // 1. Print Top Margin (Quiet Zone)
-        for (int i = 0; i < 2; i++) {
-            for (int j = 0; j < size + 4; j++) {
-                System.out.print(whiteModule);
-            }
-            System.out.println();
-        }
+        printQuietZoneRows(size);
 
-        // 2. Print Matrix with Side Margins
         for (int i = 0; i < size; i++) {
-            // Left margin (2 white modules)
-            System.out.print(whiteModule);
-            System.out.print(whiteModule);
+            printQuietZoneModules();
 
             for (int j = 0; j < size; j++) {
-                if (data[i][j] == 1) {
-                    System.out.print(blackModule);
-                } else {
-                    System.out.print(whiteModule);
-                }
+                System.out.print(data[i][j] == 1 ? BLACK_MODULE : WHITE_MODULE);
             }
 
-            // Right margin (2 white modules)
-            System.out.print(whiteModule);
-            System.out.print(whiteModule);
+            printQuietZoneModules();
             System.out.println();
         }
 
-        // 3. Print Bottom Margin (Quiet Zone)
-        for (int i = 0; i < 2; i++) {
-            for (int j = 0; j < size + 4; j++) {
-                System.out.print(whiteModule);
+        printQuietZoneRows(size);
+    }
+
+    private void printQuietZoneRows(int size) {
+        for (int i = 0; i < QUIET_ZONE_MODULES; i++) {
+            for (int j = 0; j < size + QUIET_ZONE_MODULES * 2; j++) {
+                System.out.print(WHITE_MODULE);
             }
             System.out.println();
+        }
+    }
+
+    private void printQuietZoneModules() {
+        for (int i = 0; i < QUIET_ZONE_MODULES; i++) {
+            System.out.print(WHITE_MODULE);
         }
     }
 }

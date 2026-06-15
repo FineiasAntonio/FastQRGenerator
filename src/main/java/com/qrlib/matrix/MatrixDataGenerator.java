@@ -11,6 +11,22 @@ public class MatrixDataGenerator {
     private static final int FORMAT_XOR_MASK = 0x5412;
     private static final int FORMAT_GENERATOR_POLYNOMIAL = 0x537;
     private static final int VERSION_GENERATOR_POLYNOMIAL = 0x1F25;
+    private static final int FORMAT_INFO_BITS = 15;
+
+    // Structural module positions shared by the finder, separator, timing,
+    // format and version information areas (ISO 18004).
+    private static final int FINDER_PATTERN_SIZE = 7; // 7x7 finder pattern
+    private static final int FINDER_WITH_SEPARATOR_SIZE = 8; // finder pattern + 1-module separator
+    private static final int TIMING_PATTERN_LINE = 6; // row/column carrying the timing pattern
+
+    // Penalty rule weights (ISO 18004 Annex, rules N1-N4)
+    private static final int N1_MIN_RUN_LENGTH = 5;
+    private static final int N1_PENALTY = 3;
+    private static final int N2_PENALTY = 3;
+    private static final int N3_PENALTY = 40;
+    private static final int N4_PENALTY = 10;
+    private static final double DARK_MODULE_TARGET_PERCENT = 50.0;
+    private static final double DARK_MODULE_DEVIATION_STEP_PERCENT = 5.0;
 
     // Remainder bits by version (ISO 18004, Table 1) — indexed by version-1
     private static final int[] REMAINDER_BITS = {
@@ -110,7 +126,7 @@ public class MatrixDataGenerator {
         boolean upwards = true;
 
         for (int col = size - 1; col > 0; col -= 2) {
-            if (col == 6)
+            if (col == TIMING_PATTERN_LINE)
                 col--;
 
             for (int i = 0; i < size; i++) {
@@ -188,10 +204,11 @@ public class MatrixDataGenerator {
     // ======================== FINDER PATTERNS ========================
 
     private static void drawFinderPattern(int[][] matrix, boolean[][] reserved, int row, int col) {
-        for (int r = 0; r < 7; r++) {
-            for (int c = 0; c < 7; c++) {
+        int lastIndex = FINDER_PATTERN_SIZE - 1;
+        for (int r = 0; r < FINDER_PATTERN_SIZE; r++) {
+            for (int c = 0; c < FINDER_PATTERN_SIZE; c++) {
                 reserved[row + r][col + c] = true;
-                if (r == 0 || r == 6 || c == 0 || c == 6
+                if (r == 0 || r == lastIndex || c == 0 || c == lastIndex
                         || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) {
                     matrix[row + r][col + c] = 1;
                 } else {
@@ -202,20 +219,21 @@ public class MatrixDataGenerator {
     }
 
     private static void drawSeparators(int[][] matrix, boolean[][] reserved, int size) {
+        int finderEnd = FINDER_PATTERN_SIZE; // row/column immediately after the finder pattern
         // Top-Left
-        for (int i = 0; i < 8; i++) {
-            setReserved(matrix, reserved, 7, i, 0);
-            setReserved(matrix, reserved, i, 7, 0);
+        for (int i = 0; i < FINDER_WITH_SEPARATOR_SIZE; i++) {
+            setReserved(matrix, reserved, finderEnd, i, 0);
+            setReserved(matrix, reserved, i, finderEnd, 0);
         }
         // Top-Right
-        for (int i = 0; i < 8; i++) {
-            setReserved(matrix, reserved, 7, size - 1 - i, 0);
-            setReserved(matrix, reserved, i, size - 8, 0);
+        for (int i = 0; i < FINDER_WITH_SEPARATOR_SIZE; i++) {
+            setReserved(matrix, reserved, finderEnd, size - 1 - i, 0);
+            setReserved(matrix, reserved, i, size - FINDER_WITH_SEPARATOR_SIZE, 0);
         }
         // Bottom-Left
-        for (int i = 0; i < 8; i++) {
-            setReserved(matrix, reserved, size - 8, i, 0);
-            setReserved(matrix, reserved, size - 1 - i, 7, 0);
+        for (int i = 0; i < FINDER_WITH_SEPARATOR_SIZE; i++) {
+            setReserved(matrix, reserved, size - FINDER_WITH_SEPARATOR_SIZE, i, 0);
+            setReserved(matrix, reserved, size - 1 - i, finderEnd, 0);
         }
     }
 
@@ -223,11 +241,11 @@ public class MatrixDataGenerator {
 
     private static void drawTimingPattern(int[][] matrix, boolean[][] reserved) {
         int size = matrix.length;
-        for (int i = 8; i < size - 8; i++) {
-            if (!reserved[6][i])
-                setReserved(matrix, reserved, 6, i, (i % 2 == 0) ? 1 : 0);
-            if (!reserved[i][6])
-                setReserved(matrix, reserved, i, 6, (i % 2 == 0) ? 1 : 0);
+        for (int i = FINDER_WITH_SEPARATOR_SIZE; i < size - FINDER_WITH_SEPARATOR_SIZE; i++) {
+            if (!reserved[TIMING_PATTERN_LINE][i])
+                setReserved(matrix, reserved, TIMING_PATTERN_LINE, i, (i % 2 == 0) ? 1 : 0);
+            if (!reserved[i][TIMING_PATTERN_LINE])
+                setReserved(matrix, reserved, i, TIMING_PATTERN_LINE, (i % 2 == 0) ? 1 : 0);
         }
     }
 
@@ -247,14 +265,14 @@ public class MatrixDataGenerator {
     }
 
     private static boolean overlapsFinderPattern(int centerRow, int centerCol, int size) {
-        // Top-left finder: (0,0) a (8,8)
-        if (centerRow <= 8 && centerCol <= 8)
+        // Top-left finder: (0,0) to (FINDER_WITH_SEPARATOR_SIZE, FINDER_WITH_SEPARATOR_SIZE)
+        if (centerRow <= FINDER_WITH_SEPARATOR_SIZE && centerCol <= FINDER_WITH_SEPARATOR_SIZE)
             return true;
-        // Top-right finder: (0, size-8) a (8, size-1)
-        if (centerRow <= 8 && centerCol >= size - 8)
+        // Top-right finder
+        if (centerRow <= FINDER_WITH_SEPARATOR_SIZE && centerCol >= size - FINDER_WITH_SEPARATOR_SIZE)
             return true;
-        // Bottom-left finder: (size-8, 0) a (size-1, 8)
-        if (centerRow >= size - 8 && centerCol <= 8)
+        // Bottom-left finder
+        if (centerRow >= size - FINDER_WITH_SEPARATOR_SIZE && centerCol <= FINDER_WITH_SEPARATOR_SIZE)
             return true;
         return false;
     }
@@ -279,7 +297,7 @@ public class MatrixDataGenerator {
 
     private static void drawDarkModule(int[][] matrix, boolean[][] reserved, int version) {
         int row = 4 * version + 9;
-        int col = 8;
+        int col = FINDER_WITH_SEPARATOR_SIZE;
         matrix[row][col] = 1;
         reserved[row][col] = true;
     }
@@ -287,13 +305,13 @@ public class MatrixDataGenerator {
     // ======================== FORMAT INFORMATION ========================
 
     private static void reserveFormatInfoArea(boolean[][] reserved, int size) {
-        for (int i = 0; i < 9; i++) {
-            reserved[8][i] = true;
-            reserved[i][8] = true;
+        for (int i = 0; i <= FINDER_WITH_SEPARATOR_SIZE; i++) {
+            reserved[FINDER_WITH_SEPARATOR_SIZE][i] = true;
+            reserved[i][FINDER_WITH_SEPARATOR_SIZE] = true;
         }
-        for (int i = 0; i < 8; i++) {
-            reserved[8][size - 1 - i] = true;
-            reserved[size - 1 - i][8] = true;
+        for (int i = 0; i < FINDER_WITH_SEPARATOR_SIZE; i++) {
+            reserved[FINDER_WITH_SEPARATOR_SIZE][size - 1 - i] = true;
+            reserved[size - 1 - i][FINDER_WITH_SEPARATOR_SIZE] = true;
         }
     }
 
@@ -303,20 +321,20 @@ public class MatrixDataGenerator {
 
         int[] formatBits = computeFormatBits(eccLevel, maskPattern);
 
-        // Sequência 1: Ao redor do Finder Pattern do topo-esquerdo
+        // Sequence around the top-left finder pattern
         int[][] pos1 = {
                 { 8, 0 }, { 8, 1 }, { 8, 2 }, { 8, 3 }, { 8, 4 }, { 8, 5 }, { 8, 7 }, { 8, 8 },
                 { 7, 8 }, { 5, 8 }, { 4, 8 }, { 3, 8 }, { 2, 8 }, { 1, 8 }, { 0, 8 }
         };
 
-        // Sequência 2: topo-direito + inferior-esquerdo
-        for (int i = 0; i < 15; i++) {
+        // Mirrored sequence across the top-right and bottom-left finder patterns
+        for (int i = 0; i < FORMAT_INFO_BITS; i++) {
             matrix[pos1[i][0]][pos1[i][1]] = formatBits[i];
 
-            if (i < 8) {
-                matrix[8][size - 1 - i] = formatBits[i];
+            if (i < FINDER_WITH_SEPARATOR_SIZE) {
+                matrix[FINDER_WITH_SEPARATOR_SIZE][size - 1 - i] = formatBits[i];
             } else {
-                matrix[size - 15 + i][8] = formatBits[i];
+                matrix[size - FORMAT_INFO_BITS + i][FINDER_WITH_SEPARATOR_SIZE] = formatBits[i];
             }
         }
     }
@@ -346,14 +364,14 @@ public class MatrixDataGenerator {
     // ======================== VERSION INFORMATION ========================
 
     private static void reserveVersionInfoArea(boolean[][] reserved, int size) {
-        // Bloco inferior-esquerdo (abaixo do finder top-left)
+        // Block below the top-left finder pattern
         for (int i = 0; i < 6; i++) {
-            for (int j = size - 11; j < size - 8; j++) {
+            for (int j = size - 11; j < size - FINDER_WITH_SEPARATOR_SIZE; j++) {
                 reserved[i][j] = true;
             }
         }
-        // Bloco topo-direito (à direita do finder bottom-left)
-        for (int i = size - 11; i < size - 8; i++) {
+        // Block to the right of the bottom-left finder pattern
+        for (int i = size - 11; i < size - FINDER_WITH_SEPARATOR_SIZE; i++) {
             for (int j = 0; j < 6; j++) {
                 reserved[i][j] = true;
             }
@@ -430,7 +448,7 @@ public class MatrixDataGenerator {
             for (int c = 0; c < size - 1; c++) {
                 int color = matrix[r][c];
                 if (color == matrix[r][c + 1] && color == matrix[r + 1][c] && color == matrix[r + 1][c + 1]) {
-                    penalty += 3;
+                    penalty += N2_PENALTY;
                 }
             }
         }
@@ -438,16 +456,16 @@ public class MatrixDataGenerator {
         // Rule 3: Finder pattern 1:1:3:1:1 with 4 light modules on either side
         for (int r = 0; r < size; r++) {
             for (int c = 0; c < size; c++) {
-                if (c <= size - 7) {
+                if (c <= size - FINDER_PATTERN_SIZE) {
                     if (isFinderPattern1D(matrix[r], c, size))
-                        penalty += 40;
+                        penalty += N3_PENALTY;
                 }
-                if (r <= size - 7) {
+                if (r <= size - FINDER_PATTERN_SIZE) {
                     int[] col = new int[size];
                     for (int i = 0; i < size; i++)
                         col[i] = matrix[i][c];
                     if (isFinderPattern1D(col, r, size))
-                        penalty += 40;
+                        penalty += N3_PENALTY;
                 }
             }
         }
@@ -460,8 +478,8 @@ public class MatrixDataGenerator {
             }
         }
         double proportion = (double) darkModules * 100.0 / (size * size);
-        int deviation = (int) (Math.abs(proportion - 50.0) / 5.0);
-        penalty += deviation * 10;
+        int deviation = (int) (Math.abs(proportion - DARK_MODULE_TARGET_PERCENT) / DARK_MODULE_DEVIATION_STEP_PERCENT);
+        penalty += deviation * N4_PENALTY;
 
         return penalty;
     }
@@ -474,14 +492,14 @@ public class MatrixDataGenerator {
             if (line[i] == runColor) {
                 runLength++;
             } else {
-                if (runLength >= 5)
-                    penalty += (runLength - 2); // 3 + (runLength - 5)
+                if (runLength >= N1_MIN_RUN_LENGTH)
+                    penalty += N1_PENALTY + (runLength - N1_MIN_RUN_LENGTH);
                 runColor = line[i];
                 runLength = 1;
             }
         }
-        if (runLength >= 5)
-            penalty += (runLength - 2);
+        if (runLength >= N1_MIN_RUN_LENGTH)
+            penalty += N1_PENALTY + (runLength - N1_MIN_RUN_LENGTH);
         return penalty;
     }
 

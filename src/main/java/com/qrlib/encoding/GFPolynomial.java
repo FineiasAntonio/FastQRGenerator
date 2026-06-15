@@ -5,6 +5,9 @@ import java.util.Arrays;
 public class GFPolynomial {
     private final int[] coefficients;
 
+    // Primitive polynomial x^8 + x^4 + x^3 + x^2 + 1 used to generate GF(256) for QR codes (ISO 18004).
+    private static final int PRIMITIVE_POLYNOMIAL = 0x11D;
+
     private static final int[] EXP = new int[512];
     private static final int[] LOG = new int[256];
 
@@ -23,7 +26,7 @@ public class GFPolynomial {
             LOG[x] = i;
             x <<= 1;
             if ((x & 0x100) != 0) {
-                x ^= 0x11D;
+                x ^= PRIMITIVE_POLYNOMIAL;
             }
         }
         for (int i = 255; i < 512; i++) {

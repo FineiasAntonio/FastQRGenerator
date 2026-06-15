@@ -12,6 +12,12 @@ public class ReedSolomonEncoder {
     private static final int BITS_PER_BYTE = 8;
     private static final int PADDING_CODEWORD_A = 0xEC;
     private static final int PADDING_CODEWORD_B = 0x11;
+    private static final int TERMINATOR_BITS = 4;
+
+    // Byte-mode character count indicator is 8 bits for versions 1-9 and 16 bits for versions 10-40 (ISO 18004).
+    private static final int LONG_CHARACTER_COUNT_VERSION_THRESHOLD = 10;
+    private static final int SHORT_CHARACTER_COUNT_BITS = 8;
+    private static final int LONG_CHARACTER_COUNT_BITS = 16;
 
     private final QRCodeCapacity capacity;
     private final int version;
@@ -100,7 +106,9 @@ public class ReedSolomonEncoder {
 
         bits.append(BYTE_MODE_INDICATOR);
 
-        int characterCountLength = version < 10 ? 8 : 16;
+        int characterCountLength = version < LONG_CHARACTER_COUNT_VERSION_THRESHOLD
+                ? SHORT_CHARACTER_COUNT_BITS
+                : LONG_CHARACTER_COUNT_BITS;
         String lengthBits = Integer.toBinaryString(rawBytes.length);
         while (lengthBits.length() < characterCountLength)
             lengthBits = "0" + lengthBits;
@@ -114,7 +122,7 @@ public class ReedSolomonEncoder {
         }
 
         int remainBits = (totalDataCapacity * BITS_PER_BYTE) - bits.length();
-        int terminatorSize = Math.min(4, remainBits);
+        int terminatorSize = Math.min(TERMINATOR_BITS, remainBits);
 
         for (int i = 0; i < terminatorSize; i++) {
             bits.append("0");
