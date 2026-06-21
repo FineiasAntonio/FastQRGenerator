@@ -22,13 +22,14 @@ final class PenaltyCalculator {
         int penalty = 0;
         int size = matrix.length;
 
+        // Transpose once so column scans (rules 1 and 3) reuse cached rows instead of
+        // allocating a fresh column array on every iteration (was O(size^3) allocation).
+        int[][] columns = transpose(matrix, size);
+
         // Rule 1: 5 or more consecutive modules of the same color
         for (int i = 0; i < size; i++) {
             penalty += evaluateRule1(matrix[i]);
-            int[] col = new int[size];
-            for (int j = 0; j < size; j++)
-                col[j] = matrix[j][i];
-            penalty += evaluateRule1(col);
+            penalty += evaluateRule1(columns[i]);
         }
 
         // Rule 2: 2x2 blocks of the same color
@@ -49,10 +50,7 @@ final class PenaltyCalculator {
                         penalty += N3_PENALTY;
                 }
                 if (r <= size - QrLayout.FINDER_PATTERN_SIZE) {
-                    int[] col = new int[size];
-                    for (int i = 0; i < size; i++)
-                        col[i] = matrix[i][c];
-                    if (isFinderPattern1D(col, r, size))
+                    if (isFinderPattern1D(columns[c], r, size))
                         penalty += N3_PENALTY;
                 }
             }
@@ -70,6 +68,17 @@ final class PenaltyCalculator {
         penalty += deviation * N4_PENALTY;
 
         return penalty;
+    }
+
+    private static int[][] transpose(int[][] matrix, int size) {
+        int[][] columns = new int[size][size];
+        for (int r = 0; r < size; r++) {
+            int[] row = matrix[r];
+            for (int c = 0; c < size; c++) {
+                columns[c][r] = row[c];
+            }
+        }
+        return columns;
     }
 
     private static int evaluateRule1(int[] line) {
