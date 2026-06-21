@@ -1,6 +1,6 @@
 package com.qrlib;
 
-import com.qrlib.encoding.ReedSolomonEncoder;
+import com.qrlib.encoding.QRDataEncoder;
 import com.qrlib.matrix.MatrixData;
 import com.qrlib.matrix.MatrixDataGenerator;
 import com.qrlib.config.QRCodeCapacity;
@@ -9,12 +9,12 @@ import com.qrlib.template.QRCodeTemplate;
 public class QRCodeGenerator {
 
     private final QRCodeTemplate template;
-    private final ReedSolomonEncoder encoder;
+    private final QRDataEncoder encoder;
 
     public QRCodeGenerator(QRCodeTemplate template) {
         this.template = template;
         QRCodeCapacity capacity = QRCodeCapacity.getCapacity(template.getVersion(), template.getEccLevel());
-        this.encoder = new ReedSolomonEncoder(capacity, template.getVersion().getValue());
+        this.encoder = new QRDataEncoder(capacity, template.getVersion().getValue());
     }
 
     public QRCode generate(String data) {

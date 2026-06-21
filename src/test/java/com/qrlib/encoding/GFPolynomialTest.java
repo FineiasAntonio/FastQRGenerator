@@ -9,33 +9,26 @@ class GFPolynomialTest {
 
     @Test
     void expAndLogTablesAreInverses() {
-        int[] exp = GFPolynomial.getEXP();
-        int[] log = GFPolynomial.getLOG();
-
         for (int i = 0; i < 255; i++) {
-            assertEquals(i, log[exp[i]], "LOG[EXP[" + i + "]] should be " + i);
+            assertEquals(i, GFPolynomial.log(GFPolynomial.exp(i)), "log(exp(" + i + ")) should be " + i);
         }
     }
 
     @Test
     void expTableFollowsQrPrimitivePolynomial0x11D() {
-        int[] exp = GFPolynomial.getEXP();
-
         // alpha^0 .. alpha^7 are plain powers of two
         for (int i = 0; i <= 7; i++) {
-            assertEquals(1 << i, exp[i]);
+            assertEquals(1 << i, GFPolynomial.exp(i));
         }
 
         // alpha^8 wraps around: 0x100 ^ 0x11D = 0x1D
-        assertEquals(0x1D, exp[8]);
+        assertEquals(0x1D, GFPolynomial.exp(8));
     }
 
     @Test
     void expTableRepeatsWithPeriod255() {
-        int[] exp = GFPolynomial.getEXP();
-
         for (int i = 0; i < 255; i++) {
-            assertEquals(exp[i], exp[i + 255]);
+            assertEquals(GFPolynomial.exp(i), GFPolynomial.exp(i + 255));
         }
     }
 

@@ -11,12 +11,27 @@ public class GFPolynomial {
     private static final int[] EXP = new int[512];
     private static final int[] LOG = new int[256];
 
-    public static int[] getEXP() {
-        return EXP;
+    /** Antilog table lookup: returns alpha^i in GF(256). */
+    public static int exp(int i) {
+        return EXP[i];
     }
 
-    public static int[] getLOG() {
-        return LOG;
+    /** Log table lookup: returns the exponent i such that alpha^i == value in GF(256). */
+    public static int log(int value) {
+        return LOG[value];
+    }
+
+    /**
+     * Builds the Reed-Solomon generator polynomial (x - alpha^0)(x - alpha^1)...(x - alpha^(n-1))
+     * for the given number of error-correction codewords.
+     */
+    public static GFPolynomial generator(int ecCodewordCount) {
+        GFPolynomial generator = new GFPolynomial(new int[] { 1 });
+        for (int i = 0; i < ecCodewordCount; i++) {
+            GFPolynomial term = new GFPolynomial(new int[] { 1, EXP[i] });
+            generator = generator.multiply(term);
+        }
+        return generator;
     }
 
     static {
