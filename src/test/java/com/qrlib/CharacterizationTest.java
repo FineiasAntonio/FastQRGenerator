@@ -26,15 +26,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class CharacterizationTest {
 
-    private static final String PAYLOAD = "https://github.com/FineiasAntonio/FastQRGenerator";
+    // 15 bytes — fits every version/ECC combination below, including V1/L (max 17 bytes).
+    private static final String PAYLOAD = "FastQRGenerator";
 
     private static final Map<String, String> GOLDEN = new LinkedHashMap<>();
     static {
-        GOLDEN.put("V1/L", "80054b68e2bef591a89b9c5f593f0ff8e7824c47674112d2876ae9b80d6ace3f");
-        GOLDEN.put("V2/M", "0d3b4b94081d3e3e6d2ee9fa2fbffd1aa162a6fd7003571a9c0f5fd7605c1e7b");
-        GOLDEN.put("V7/Q", "8a76d56a7ecc679c924290d08442093c9f7e18729e9fd3d94ee77a1806ba1949");
-        GOLDEN.put("V10/H", "ac8838c4f4f75913a3ffa46cd2cb0e4097b6d5927796cbb9b3b2447528548635");
-        GOLDEN.put("V40/H", "f46084d048e1739a450036d9f611c24063e0113fda23f94a603c1fb073f96c8a");
+        GOLDEN.put("V1/L", "9ca0d4ab854745aac18cd9fac12acf81408982eb886192de6a1ba3ca44701381");
+        GOLDEN.put("V2/M", "5c438367f2332fcf4d26c4dbed4af0ec6d846de32f74d23e4c9c58a88e9358cf");
+        GOLDEN.put("V7/Q", "453e71dbe20e5a10723a8a5dc7078db4c998fe05f7ce51ca9624817772fd1b39");
+        GOLDEN.put("V10/H", "b01df751d3c5f3da1f1166fd1ea0aa605278bef0d58fee5a30d75fd2251e586f");
+        GOLDEN.put("V40/H", "10f2c7413be46033f1d3e60e721b436a647d44f4750f63822800ee3a85e8d7d5");
     }
 
     @Test

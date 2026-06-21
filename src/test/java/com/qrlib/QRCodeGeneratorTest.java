@@ -13,14 +13,48 @@ import java.io.ByteArrayOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class QRCodeGeneratorTest {
 
     @Test
-    void buildRequiresVersion() {
-        QRCodeGeneratorBuilder builder = new QRCodeGeneratorBuilder();
+    void buildWithoutVersionAutoSelectsSmallestFittingVersion() {
+        QRCodeGenerator generator = new QRCodeGeneratorBuilder().build();
 
-        assertThrows(IllegalStateException.class, builder::build);
+        // "HI" fits in V1 (21x21) at the default ECC level M.
+        QRCode qrCode = generator.generate("HI");
+
+        assertEquals(21, qrCode.getMatrixData().getMatrix().length);
+    }
+
+    @Test
+    void autoSelectedVersionGrowsWithPayload() {
+        QRCodeGenerator generator = new QRCodeGeneratorBuilder().build();
+
+        int smallSize = generator.generate("HI").getMatrixData().getMatrix().length;
+
+        StringBuilder bigPayload = new StringBuilder();
+        for (int i = 0; i < 500; i++) {
+            bigPayload.append("X");
+        }
+        int bigSize = generator.generate(bigPayload.toString()).getMatrixData().getMatrix().length;
+
+        assertTrue(bigSize > smallSize, "A larger payload should auto-select a larger symbol");
+    }
+
+    @Test
+    void fixedVersionRejectsOversizedPayload() {
+        QRCodeGenerator generator = new QRCodeGeneratorBuilder()
+                .version(QRCodeVersion.V1)
+                .ECCLevel(ECCLevel.H)
+                .build();
+
+        StringBuilder oversized = new StringBuilder();
+        for (int i = 0; i < 100; i++) {
+            oversized.append("X");
+        }
+
+        assertThrows(IllegalArgumentException.class, () -> generator.generate(oversized.toString()));
     }
 
     @Test
