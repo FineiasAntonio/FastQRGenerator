@@ -156,7 +156,7 @@ public class QRCodeCapacity {
                 throw new IllegalArgumentException("Unsupported ECC level");
         }
 
-        if (vIndex < 0 || vIndex >= 40) {
+        if (vIndex < 0 || vIndex >= BLOCK_TABLE.length) {
             throw new IllegalArgumentException("Unsupported version: " + version);
         }
 

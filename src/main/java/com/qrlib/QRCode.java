@@ -1,7 +1,5 @@
 package com.qrlib;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -9,12 +7,14 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 import com.qrlib.config.ImageExtensions;
+import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
+import com.qrlib.render.QRCodeImageRenderer;
 
 public class QRCode {
 
     private static final int MODULE_SIZE = 10;
-    private static final int QUIET_ZONE = 4;
+    private static final QRCodeStyleDefinitions DEFAULT_STYLE = QRCodeStyleDefinitions.builder().build();
 
     private final MatrixData matrixData;
 
@@ -31,51 +31,46 @@ public class QRCode {
     }
 
     public ByteArrayOutputStream getAsImage() {
-        return getAsImage(ImageExtensions.PNG, MODULE_SIZE);
+        return getAsImage(ImageExtensions.PNG, MODULE_SIZE, DEFAULT_STYLE);
     }
 
     public ByteArrayOutputStream getAsImage(ImageExtensions extension) {
-        return getAsImage(extension, MODULE_SIZE);
+        return getAsImage(extension, MODULE_SIZE, DEFAULT_STYLE);
+    }
+
+    public ByteArrayOutputStream getAsImage(ImageExtensions extension, int moduleSize) {
+        return getAsImage(extension, moduleSize, DEFAULT_STYLE);
+    }
+
+    public ByteArrayOutputStream getAsImage(QRCodeStyleDefinitions style) {
+        return getAsImage(ImageExtensions.PNG, MODULE_SIZE, style);
+    }
+
+    public ByteArrayOutputStream getAsImage(ImageExtensions extension, QRCodeStyleDefinitions style) {
+        return getAsImage(extension, MODULE_SIZE, style);
     }
 
     /**
-     * Renders the symbol with a configurable module size in pixels (quiet zone unchanged in modules).
-     * Values like 10 are suitable for display; smaller values (e.g. 2) round-trip better with ZXing's
-     * Java {@code Detector} for some version/payload combinations where upscaled bitmaps can fail
-     * detection even though the symbol is valid (same limitation affects ZXing's own encoder output).
+     * Renders the symbol with a configurable module size in pixels and visual style. The
+     * style's border thickness (in modules) takes the place of the quiet zone.
+     * <p>
+     * Values like 10 are suitable for display; smaller values (e.g. 2) round-trip better with
+     * ZXing's Java {@code Detector} for some version/payload combinations where upscaled bitmaps
+     * can fail detection even though the symbol is valid (same limitation affects ZXing's own
+     * encoder output).
      */
-    public ByteArrayOutputStream getAsImage(ImageExtensions extension, int moduleSize) {
+    public ByteArrayOutputStream getAsImage(ImageExtensions extension, int moduleSize, QRCodeStyleDefinitions style) {
         if (moduleSize < 1) {
             throw new IllegalArgumentException("moduleSize must be >= 1");
         }
-        int[][] matrix = matrixData.getMatrix();
-        int size = matrix.length;
-        int imageSize = (size + QUIET_ZONE * 2) * moduleSize;
 
-        BufferedImage image = new BufferedImage(imageSize, imageSize, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = image.createGraphics();
-
-        g.setColor(Color.WHITE);
-        g.fillRect(0, 0, imageSize, imageSize);
-
-        g.setColor(Color.BLACK);
-        for (int row = 0; row < size; row++) {
-            for (int col = 0; col < size; col++) {
-                if (matrix[row][col] == 1) {
-                    int x = (col + QUIET_ZONE) * moduleSize;
-                    int y = (row + QUIET_ZONE) * moduleSize;
-                    g.fillRect(x, y, moduleSize, moduleSize);
-                }
-            }
-        }
-
-        g.dispose();
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, moduleSize);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
             ImageIO.write(image, extension.getExtension(), baos);
         } catch (IOException e) {
-            throw new RuntimeException("Erro ao gerar imagem do QR Code", e);
+            throw new RuntimeException("Error generating QR code image", e);
         }
         return baos;
     }

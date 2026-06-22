@@ -3,8 +3,6 @@ package com.qrlib;
 import com.qrlib.config.ECCLevel;
 import com.qrlib.config.QRCodeSize;
 import com.qrlib.config.QRCodeVersion;
-import com.qrlib.template.QRCodeGeneratorFactory;
-import com.qrlib.template.QRCodeTemplate;
 
 public class QRCodeGeneratorBuilder {
 
@@ -27,13 +25,8 @@ public class QRCodeGeneratorBuilder {
     }
 
     public QRCodeGenerator build() {
-        if (version == null) {
-            throw new IllegalStateException("QRCodeVersion is required");
-        }
-        if (eccLevel == null) {
-            eccLevel = ECCLevel.M;
-        }
-        QRCodeTemplate template = QRCodeGeneratorFactory.createTemplate(version, eccLevel);
-        return new QRCodeGenerator(template);
+        ECCLevel resolvedEccLevel = (eccLevel != null) ? eccLevel : ECCLevel.M;
+        // version may be null: the generator then picks the smallest version that fits each payload.
+        return new QRCodeGenerator(version, resolvedEccLevel);
     }
 }
