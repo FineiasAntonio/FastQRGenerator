@@ -3,8 +3,6 @@ package com.qrlib.encoding;
 import com.qrlib.config.QRCodeCapacity;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Turns the input string into the data codeword stream (before error correction): byte-mode
@@ -13,7 +11,8 @@ import java.util.List;
  */
 public class DataCodewordFormatter {
 
-    private static final String BYTE_MODE_INDICATOR = "0100";
+    private static final int BYTE_MODE_INDICATOR = 0b0100;
+    private static final int MODE_INDICATOR_BITS = 4;
     private static final int BITS_PER_BYTE = 8;
     private static final int PADDING_CODEWORD_A = 0xEC;
     private static final int PADDING_CODEWORD_B = 0x11;
@@ -35,46 +34,41 @@ public class DataCodewordFormatter {
     public int[] format(String data) {
         int totalDataCapacity = capacity.getTotalDataCodewords();
         byte[] rawBytes = data.getBytes(StandardCharsets.UTF_8);
-        StringBuilder bits = new StringBuilder();
 
-        bits.append(BYTE_MODE_INDICATOR);
-
-        int characterCountLength = version < LONG_CHARACTER_COUNT_VERSION_THRESHOLD
+        int characterCountBits = version < LONG_CHARACTER_COUNT_VERSION_THRESHOLD
                 ? SHORT_CHARACTER_COUNT_BITS
                 : LONG_CHARACTER_COUNT_BITS;
-        String lengthBits = Integer.toBinaryString(rawBytes.length);
-        while (lengthBits.length() < characterCountLength)
-            lengthBits = "0" + lengthBits;
-        bits.append(lengthBits);
 
+        int[] codewords = new int[totalDataCapacity];
+        int bitPos = 0;
+        bitPos = writeBits(codewords, bitPos, BYTE_MODE_INDICATOR, MODE_INDICATOR_BITS);
+        bitPos = writeBits(codewords, bitPos, rawBytes.length, characterCountBits);
         for (byte b : rawBytes) {
-            String bBits = Integer.toBinaryString(Byte.toUnsignedInt(b));
-            while (bBits.length() < BITS_PER_BYTE)
-                bBits = "0" + bBits;
-            bits.append(bBits);
+            bitPos = writeBits(codewords, bitPos, Byte.toUnsignedInt(b), BITS_PER_BYTE);
         }
 
-        int remainBits = (totalDataCapacity * BITS_PER_BYTE) - bits.length();
-        int terminatorSize = Math.min(TERMINATOR_BITS, remainBits);
-
-        for (int i = 0; i < terminatorSize; i++) {
-            bits.append("0");
-        }
-
-        while (bits.length() % BITS_PER_BYTE != 0)
-            bits.append("0");
-
-        List<Integer> codewords = new ArrayList<>();
-        for (int i = 0; i < bits.length(); i += BITS_PER_BYTE) {
-            codewords.add(Integer.parseInt(bits.substring(i, i + BITS_PER_BYTE), 2));
-        }
+        // Terminator (up to 4 zero bits) and zero padding to the byte boundary: the array
+        // is already zero-filled, so only the write position advances.
+        bitPos += Math.min(TERMINATOR_BITS, totalDataCapacity * BITS_PER_BYTE - bitPos);
+        int filledCodewords = (bitPos + BITS_PER_BYTE - 1) / BITS_PER_BYTE;
 
         boolean toggle = true;
-        while (codewords.size() < totalDataCapacity) {
-            codewords.add(toggle ? PADDING_CODEWORD_A : PADDING_CODEWORD_B);
+        for (int i = filledCodewords; i < totalDataCapacity; i++) {
+            codewords[i] = toggle ? PADDING_CODEWORD_A : PADDING_CODEWORD_B;
             toggle = !toggle;
         }
 
-        return codewords.stream().mapToInt(i -> i).toArray();
+        return codewords;
+    }
+
+    /** Writes the low {@code bitCount} bits of {@code value}, most significant first, at {@code bitPos}. */
+    private static int writeBits(int[] codewords, int bitPos, int value, int bitCount) {
+        for (int i = bitCount - 1; i >= 0; i--) {
+            if (((value >> i) & 1) != 0) {
+                codewords[bitPos / BITS_PER_BYTE] |= 1 << (BITS_PER_BYTE - 1 - bitPos % BITS_PER_BYTE);
+            }
+            bitPos++;
+        }
+        return bitPos;
     }
 }

@@ -1,12 +1,9 @@
 package com.qrlib.matrix;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Builds the data bitstream (including version-dependent remainder bits) and writes it into the
- * unreserved modules following the ISO 18004 zig-zag placement, applying one of the eight data
- * mask patterns.
+ * Writes the interleaved codewords into the unreserved modules following the ISO 18004 zig-zag
+ * placement, applying one of the eight data mask patterns. Modules past the end of the codeword
+ * stream — the version-dependent remainder bits — are always zero (ISO 18004, Table 1).
  */
 final class DataMaskApplier {
 
@@ -15,32 +12,14 @@ final class DataMaskApplier {
 
     static final int MASK_PATTERN_COUNT = 8;
 
-    // Remainder bits by version (ISO 18004, Table 1) — indexed by version-1
-    private static final int[] REMAINDER_BITS = {
-            0, // V1
-            7, 7, 7, 7, 7, // V2-V6
-            0, 0, 0, 0, 0, 0, 0, // V7-V13
-            3, 3, 3, 3, 3, 3, 3, // V14-V20
-            4, 4, 4, 4, 4, 4, 4, // V21-V27
-            3, 3, 3, 3, 3, 3, 3, // V28-V34
-            0, 0, 0, 0, 0, 0     // V35-V40
-    };
+    private static final int BITS_PER_BYTE = 8;
 
-    /** Converts the interleaved codewords to a bitstream and appends the version's remainder bits. */
-    static List<Integer> buildBitstream(int[] inputData, int versionValue) {
-        List<Integer> bitstream = convertToBitstream(inputData);
-        int remainderCount = REMAINDER_BITS[versionValue - 1];
-        for (int i = 0; i < remainderCount; i++) {
-            bitstream.add(0);
-        }
-        return bitstream;
-    }
-
-    static void applyDataAndMask(MatrixData matrixData, List<Integer> bitstream, int maskPattern) {
+    static void applyDataAndMask(MatrixData matrixData, int[] codewords, int maskPattern) {
         int size = matrixData.getMatrix().length;
         int[][] matrix = matrixData.getMatrix();
         boolean[][] reserved = matrixData.getReserved();
 
+        int totalBits = codewords.length * BITS_PER_BYTE;
         int bitIndex = 0;
         boolean upwards = true;
 
@@ -55,7 +34,7 @@ final class DataMaskApplier {
                     int currentCol = col - c;
 
                     if (!reserved[row][currentCol]) {
-                        int bit = (bitIndex < bitstream.size()) ? bitstream.get(bitIndex++) : 0;
+                        int bit = (bitIndex < totalBits) ? readBit(codewords, bitIndex++) : 0;
                         if (applyMask(row, currentCol, maskPattern)) {
                             bit ^= 1;
                         }
@@ -65,6 +44,11 @@ final class DataMaskApplier {
             }
             upwards = !upwards;
         }
+    }
+
+    /** Reads bit {@code bitIndex} of the codeword stream, most significant bit of each codeword first. */
+    private static int readBit(int[] codewords, int bitIndex) {
+        return (codewords[bitIndex / BITS_PER_BYTE] >> (BITS_PER_BYTE - 1 - bitIndex % BITS_PER_BYTE)) & 1;
     }
 
     private static boolean applyMask(int r, int c, int mask) {
@@ -88,15 +72,5 @@ final class DataMaskApplier {
             default:
                 return false;
         }
-    }
-
-    private static List<Integer> convertToBitstream(int[] data) {
-        List<Integer> bits = new ArrayList<>();
-        for (int b : data) {
-            for (int i = 7; i >= 0; i--) {
-                bits.add((b >> i) & 1);
-            }
-        }
-        return bits;
     }
 }

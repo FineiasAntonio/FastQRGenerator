@@ -1,15 +1,24 @@
 package com.qrlib.config;
 
+import java.awt.image.BufferedImage;
+
 /**
  * Visual style applied when rendering a QR code image: colors, quiet-zone (border)
- * thickness and module corner rounding. Colors are validated eagerly and accept
- * {@code #RRGGBB} or shorthand {@code #RGB} hex notation. When no border color is set,
- * the border defaults to the background color so the quiet zone blends with the symbol.
+ * thickness, module corner rounding and an optional center image (logo). Colors are
+ * validated eagerly and accept {@code #RRGGBB} or shorthand {@code #RGB} hex notation.
+ * When no border color is set, the border defaults to the background color so the quiet
+ * zone blends with the symbol.
  */
 public class QRCodeStyleDefinitions {
 
     /** Largest corner radius, as a fraction of the module size (half the module = full round). */
     public static final double MAX_CORNER_RADIUS = 0.5;
+
+    /**
+     * Largest fraction of the symbol width the center image may cover. Beyond this the
+     * image starts overwriting too many modules for error correction to compensate.
+     */
+    public static final double MAX_CENTER_IMAGE_RATIO = 0.3;
 
     private final int borderThickness;
     private final boolean roundedCorners;
@@ -17,6 +26,9 @@ public class QRCodeStyleDefinitions {
     private final String moduleColor;
     private final String backgroundColor;
     private final String borderColor;
+    private final BufferedImage centerImage;
+    private final double centerImageRatio;
+    private final CenterImagePadShape centerImagePadShape;
 
     private QRCodeStyleDefinitions(Builder builder) {
         this.borderThickness = builder.borderThickness;
@@ -25,6 +37,9 @@ public class QRCodeStyleDefinitions {
         this.moduleColor = builder.moduleColor;
         this.backgroundColor = builder.backgroundColor;
         this.borderColor = builder.borderColor != null ? builder.borderColor : builder.backgroundColor;
+        this.centerImage = builder.centerImage;
+        this.centerImageRatio = builder.centerImageRatio;
+        this.centerImagePadShape = builder.centerImagePadShape;
     }
 
     public int getBorderThickness() {
@@ -52,6 +67,21 @@ public class QRCodeStyleDefinitions {
         return borderColor;
     }
 
+    /** Image drawn over the center of the symbol, or {@code null} when none is set. */
+    public BufferedImage getCenterImage() {
+        return centerImage;
+    }
+
+    /** Fraction of the symbol width covered by the center image, in {@code (0, 0.3]}. */
+    public double getCenterImageRatio() {
+        return centerImageRatio;
+    }
+
+    /** Shape of the background pad painted behind the center image. */
+    public CenterImagePadShape getCenterImagePadShape() {
+        return centerImagePadShape;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -63,6 +93,9 @@ public class QRCodeStyleDefinitions {
         private String moduleColor = "#000000"; // Black
         private String backgroundColor = "#FFFFFF"; // White
         private String borderColor; // null => follows backgroundColor
+        private BufferedImage centerImage;
+        private double centerImageRatio = 0.2;
+        private CenterImagePadShape centerImagePadShape = CenterImagePadShape.SQUARE;
 
         private Builder() {
         }
@@ -107,6 +140,49 @@ public class QRCodeStyleDefinitions {
 
         public Builder borderColor(String borderColor) {
             this.borderColor = normalizeColor(borderColor, "Border");
+            return this;
+        }
+
+        /**
+         * Draws the given image over the center of the symbol, on top of a small
+         * background-colored pad so the surrounding modules stay readable. The image is
+         * scaled, preserving its aspect ratio, to fit the area configured by
+         * {@link #centerImageRatio(double)}.
+         * <p>
+         * The covered modules are lost to the reader, so pair a center image with a high
+         * error-correction level ({@code ECCLevel.Q} or {@code H}).
+         */
+        public Builder centerImage(BufferedImage centerImage) {
+            if (centerImage == null) {
+                throw new IllegalArgumentException("Center image cannot be null");
+            }
+            this.centerImage = centerImage;
+            return this;
+        }
+
+        /**
+         * Sets the fraction of the symbol width (border excluded) covered by the center
+         * image, from just above {@code 0} up to {@code 0.3}. Defaults to {@code 0.2}.
+         */
+        public Builder centerImageRatio(double centerImageRatio) {
+            if (centerImageRatio <= 0 || centerImageRatio > MAX_CENTER_IMAGE_RATIO) {
+                throw new IllegalArgumentException("Center image ratio must be greater than 0 and at most "
+                        + MAX_CENTER_IMAGE_RATIO + ", got: " + centerImageRatio);
+            }
+            this.centerImageRatio = centerImageRatio;
+            return this;
+        }
+
+        /**
+         * Sets the shape of the background pad painted behind the center image. Defaults
+         * to {@link CenterImagePadShape#SQUARE}. With {@link CenterImagePadShape#CIRCLE}
+         * the image is also cropped to a circle, scaled to cover it fully.
+         */
+        public Builder centerImagePadShape(CenterImagePadShape centerImagePadShape) {
+            if (centerImagePadShape == null) {
+                throw new IllegalArgumentException("Center image pad shape cannot be null");
+            }
+            this.centerImagePadShape = centerImagePadShape;
             return this;
         }
 

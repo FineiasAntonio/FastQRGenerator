@@ -2,9 +2,6 @@ package com.qrlib.encoding;
 
 import com.qrlib.config.QRCodeCapacity;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Splits the data codewords into the version's error-correction blocks, computes each block's
  * Reed-Solomon codewords, and interleaves data and EC codewords into the final stream order
@@ -48,23 +45,24 @@ public class CodewordInterleaver {
             ecBlocks[i] = reedSolomonEncoder.computeEcCodewords(dataBlocks[i]);
         }
 
-        List<Integer> result = new ArrayList<>();
+        int[] result = new int[dataCodewords.length + totalBlocks * ecPerBlock];
+        int out = 0;
 
         int maxDataLen = Math.max(g1Data, g2Data);
         for (int col = 0; col < maxDataLen; col++) {
             for (int block = 0; block < totalBlocks; block++) {
                 if (col < dataBlocks[block].length) {
-                    result.add(dataBlocks[block][col]);
+                    result[out++] = dataBlocks[block][col];
                 }
             }
         }
 
         for (int col = 0; col < ecPerBlock; col++) {
             for (int block = 0; block < totalBlocks; block++) {
-                result.add(ecBlocks[block][col]);
+                result[out++] = ecBlocks[block][col];
             }
         }
 
-        return result.stream().mapToInt(i -> i).toArray();
+        return result;
     }
 }
