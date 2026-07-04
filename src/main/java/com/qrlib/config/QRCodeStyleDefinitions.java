@@ -28,6 +28,7 @@ public class QRCodeStyleDefinitions {
     private final String borderColor;
     private final BufferedImage centerImage;
     private final double centerImageRatio;
+    private final CenterImagePadShape centerImagePadShape;
 
     private QRCodeStyleDefinitions(Builder builder) {
         this.borderThickness = builder.borderThickness;
@@ -38,6 +39,7 @@ public class QRCodeStyleDefinitions {
         this.borderColor = builder.borderColor != null ? builder.borderColor : builder.backgroundColor;
         this.centerImage = builder.centerImage;
         this.centerImageRatio = builder.centerImageRatio;
+        this.centerImagePadShape = builder.centerImagePadShape;
     }
 
     public int getBorderThickness() {
@@ -75,6 +77,11 @@ public class QRCodeStyleDefinitions {
         return centerImageRatio;
     }
 
+    /** Shape of the background pad painted behind the center image. */
+    public CenterImagePadShape getCenterImagePadShape() {
+        return centerImagePadShape;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -88,6 +95,7 @@ public class QRCodeStyleDefinitions {
         private String borderColor; // null => follows backgroundColor
         private BufferedImage centerImage;
         private double centerImageRatio = 0.2;
+        private CenterImagePadShape centerImagePadShape = CenterImagePadShape.SQUARE;
 
         private Builder() {
         }
@@ -162,6 +170,19 @@ public class QRCodeStyleDefinitions {
                         + MAX_CENTER_IMAGE_RATIO + ", got: " + centerImageRatio);
             }
             this.centerImageRatio = centerImageRatio;
+            return this;
+        }
+
+        /**
+         * Sets the shape of the background pad painted behind the center image. Defaults
+         * to {@link CenterImagePadShape#SQUARE}. With {@link CenterImagePadShape#CIRCLE}
+         * the image is also cropped to a circle, scaled to cover it fully.
+         */
+        public Builder centerImagePadShape(CenterImagePadShape centerImagePadShape) {
+            if (centerImagePadShape == null) {
+                throw new IllegalArgumentException("Center image pad shape cannot be null");
+            }
+            this.centerImagePadShape = centerImagePadShape;
             return this;
         }
 

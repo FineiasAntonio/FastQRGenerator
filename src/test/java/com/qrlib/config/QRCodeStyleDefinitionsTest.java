@@ -101,6 +101,20 @@ class QRCodeStyleDefinitionsTest {
     }
 
     @Test
+    void centerImagePadShapeDefaultsToSquareAndRejectsNull() {
+        QRCodeStyleDefinitions defaults = QRCodeStyleDefinitions.builder().build();
+        assertEquals(CenterImagePadShape.SQUARE, defaults.getCenterImagePadShape());
+
+        QRCodeStyleDefinitions rounded = QRCodeStyleDefinitions.builder()
+                .centerImagePadShape(CenterImagePadShape.ROUNDED)
+                .build();
+        assertEquals(CenterImagePadShape.ROUNDED, rounded.getCenterImagePadShape());
+
+        QRCodeStyleDefinitions.Builder builder = QRCodeStyleDefinitions.builder();
+        assertThrows(IllegalArgumentException.class, () -> builder.centerImagePadShape(null));
+    }
+
+    @Test
     void defaultsAreBlackOnWhiteSquareModulesWithFourModuleBorder() {
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder().build();
 

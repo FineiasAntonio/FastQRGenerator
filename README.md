@@ -157,10 +157,15 @@ BufferedImage logo = ImageIO.read(new File("logo.png"));
 QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
         .centerImage(logo)
         .centerImageRatio(0.2)
+        .centerImagePadShape(CenterImagePadShape.ROUNDED) // SQUARE (default), ROUNDED or CIRCLE
         .build();
 
 qr.getAsImage(ImageExtensions.PNG, 10, style);
 ```
+
+The pad behind the image can be `SQUARE` (default), `ROUNDED` (rounded
+corners) or `CIRCLE` — with `CIRCLE` the image itself is also cropped to a
+circle, scaled to cover it fully.
 
 The covered modules are lost to the reader and must be recovered by error
 correction, so pair a center image with a high error-correction level:

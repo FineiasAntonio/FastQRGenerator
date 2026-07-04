@@ -1,5 +1,6 @@
 package com.qrlib.render;
 
+import com.qrlib.config.CenterImagePadShape;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
 import org.junit.jupiter.api.Test;
@@ -128,14 +129,8 @@ class QRCodeImageRendererTest {
     void centerImageIsDrawnOverABackgroundPadAtTheSymbolCenter() {
         MatrixData matrixData = allDarkMatrix(20);
 
-        BufferedImage logo = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
-        Graphics2D logoGraphics = logo.createGraphics();
-        logoGraphics.setColor(Color.RED);
-        logoGraphics.fillRect(0, 0, 10, 10);
-        logoGraphics.dispose();
-
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
-                .centerImage(logo)
+                .centerImage(solidRedLogo(10, 10))
                 .centerImageRatio(0.3)
                 .borderThickness(0)
                 .build();
@@ -152,14 +147,8 @@ class QRCodeImageRendererTest {
     void centerImageScalingPreservesTheAspectRatio() {
         MatrixData matrixData = allDarkMatrix(20);
 
-        BufferedImage wideLogo = new BufferedImage(20, 10, BufferedImage.TYPE_INT_RGB);
-        Graphics2D logoGraphics = wideLogo.createGraphics();
-        logoGraphics.setColor(Color.RED);
-        logoGraphics.fillRect(0, 0, 20, 10);
-        logoGraphics.dispose();
-
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
-                .centerImage(wideLogo)
+                .centerImage(solidRedLogo(20, 10))
                 .centerImageRatio(0.3)
                 .borderThickness(0)
                 .build();
@@ -170,6 +159,76 @@ class QRCodeImageRendererTest {
         assertEquals(Color.RED.getRGB(), image.getRGB(100, 100));
         assertEquals(Color.WHITE.getRGB(), image.getRGB(100, 82));
         assertEquals(Color.BLACK.getRGB(), image.getRGB(100, 70));
+    }
+
+    @Test
+    void roundedPadClipsItsCornersButKeepsItsEdges() {
+        MatrixData matrixData = allDarkMatrix(20);
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .centerImage(solidRedLogo(10, 10))
+                .centerImageRatio(0.3)
+                .centerImagePadShape(CenterImagePadShape.ROUNDED)
+                .borderThickness(0)
+                .build();
+
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
+
+        // Pad box (64,64)-(136,136) with an 18px corner arc: the corner is rounded off,
+        // the edge midpoints and the logo stay as in the square pad.
+        assertEquals(Color.RED.getRGB(), image.getRGB(100, 100));
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(100, 66)); // top edge midpoint
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(64, 64)); // clipped pad corner
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(50, 50));
+    }
+
+    @Test
+    void circularPadCropsTheImageToACircle() {
+        MatrixData matrixData = allDarkMatrix(20);
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .centerImage(solidRedLogo(10, 10))
+                .centerImageRatio(0.3)
+                .centerImagePadShape(CenterImagePadShape.CIRCLE)
+                .borderThickness(0)
+                .build();
+
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
+
+        // 60px logo circle inside a 72px pad circle, both centered at (100,100).
+        assertEquals(Color.RED.getRGB(), image.getRGB(100, 100)); // logo center
+        assertEquals(Color.RED.getRGB(), image.getRGB(100, 75)); // inside the logo circle
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(100, 66)); // pad ring above the logo
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(68, 68)); // outside the pad circle
+    }
+
+    @Test
+    void circularPadCoversTheCircleWithNonSquareImages() {
+        MatrixData matrixData = allDarkMatrix(20);
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .centerImage(solidRedLogo(20, 10))
+                .centerImageRatio(0.3)
+                .centerImagePadShape(CenterImagePadShape.CIRCLE)
+                .borderThickness(0)
+                .build();
+
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
+
+        // The wide logo is scaled to cover the whole circle, so the top of the
+        // circle is still red rather than empty.
+        assertEquals(Color.RED.getRGB(), image.getRGB(100, 100));
+        assertEquals(Color.RED.getRGB(), image.getRGB(100, 75));
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(100, 66));
+    }
+
+    private BufferedImage solidRedLogo(int width, int height) {
+        BufferedImage logo = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = logo.createGraphics();
+        graphics.setColor(Color.RED);
+        graphics.fillRect(0, 0, width, height);
+        graphics.dispose();
+        return logo;
     }
 
     private MatrixData allDarkMatrix(int size) {
