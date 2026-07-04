@@ -145,6 +145,34 @@ Notes:
 - Keep enough contrast between module and background colors — low-contrast
   symbols may not scan reliably.
 
+### Center image (logo)
+
+Overlay an image on the center of the symbol. It is drawn over a small
+background-colored pad and scaled — preserving its aspect ratio — to the
+configured fraction of the symbol width (default `0.2`, maximum `0.3`):
+
+```java
+BufferedImage logo = ImageIO.read(new File("logo.png"));
+
+QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+        .centerImage(logo)
+        .centerImageRatio(0.2)
+        .build();
+
+qr.getAsImage(ImageExtensions.PNG, 10, style);
+```
+
+The covered modules are lost to the reader and must be recovered by error
+correction, so pair a center image with a high error-correction level:
+
+```java
+new QRCodeGeneratorBuilder().ECCLevel(ECCLevel.H).build();
+```
+
+As a rule of thumb: the default ratio (`0.2`) scans reliably at level `M` and
+above, the maximum ratio (`0.3`) requires `Q` or `H`, and level `L` should not
+be combined with a center image at all.
+
 ### Printing to the terminal
 
 ```java

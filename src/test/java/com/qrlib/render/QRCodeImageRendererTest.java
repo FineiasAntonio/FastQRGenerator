@@ -5,6 +5,7 @@ import com.qrlib.matrix.MatrixData;
 import org.junit.jupiter.api.Test;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -121,5 +122,63 @@ class QRCodeImageRendererTest {
         // With radius 2px the corner pixel is clipped, but (12,12) — clipped at radius 5 — is filled.
         assertEquals(Color.BLACK.getRGB(), image.getRGB(12, 12));
         assertEquals(Color.BLACK.getRGB(), image.getRGB(15, 15));
+    }
+
+    @Test
+    void centerImageIsDrawnOverABackgroundPadAtTheSymbolCenter() {
+        MatrixData matrixData = allDarkMatrix(20);
+
+        BufferedImage logo = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
+        Graphics2D logoGraphics = logo.createGraphics();
+        logoGraphics.setColor(Color.RED);
+        logoGraphics.fillRect(0, 0, 10, 10);
+        logoGraphics.dispose();
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .centerImage(logo)
+                .centerImageRatio(0.3)
+                .borderThickness(0)
+                .build();
+
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
+
+        // 200px symbol, ratio 0.3 => 60px logo at (70,70)-(130,130) with a 6px background pad.
+        assertEquals(Color.RED.getRGB(), image.getRGB(100, 100)); // logo center
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(66, 66)); // pad around the logo
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(50, 50)); // modules beyond the pad are intact
+    }
+
+    @Test
+    void centerImageScalingPreservesTheAspectRatio() {
+        MatrixData matrixData = allDarkMatrix(20);
+
+        BufferedImage wideLogo = new BufferedImage(20, 10, BufferedImage.TYPE_INT_RGB);
+        Graphics2D logoGraphics = wideLogo.createGraphics();
+        logoGraphics.setColor(Color.RED);
+        logoGraphics.fillRect(0, 0, 20, 10);
+        logoGraphics.dispose();
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .centerImage(wideLogo)
+                .centerImageRatio(0.3)
+                .borderThickness(0)
+                .build();
+
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
+
+        // 60x30px logo at (70,85)-(130,115): red inside, pad above it, module further up.
+        assertEquals(Color.RED.getRGB(), image.getRGB(100, 100));
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(100, 82));
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(100, 70));
+    }
+
+    private MatrixData allDarkMatrix(int size) {
+        MatrixData matrixData = new MatrixData(size);
+        for (int row = 0; row < size; row++) {
+            for (int col = 0; col < size; col++) {
+                matrixData.getMatrix()[row][col] = 1;
+            }
+        }
+        return matrixData;
     }
 }

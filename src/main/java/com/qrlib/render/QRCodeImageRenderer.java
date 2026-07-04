@@ -11,9 +11,14 @@ import java.awt.image.BufferedImage;
 /**
  * Renders a {@link MatrixData} symbol into a {@link BufferedImage}, applying a
  * {@link QRCodeStyleDefinitions}. The border thickness (in modules) takes the place of the
- * symbol's quiet zone, painted in the configured border color.
+ * symbol's quiet zone, painted in the configured border color. When the style carries a
+ * center image, it is drawn last, over a background-colored pad, so scanners rely on
+ * error correction to recover the covered modules.
  */
 public class QRCodeImageRenderer {
+
+    /** Pad around the center image, as a fraction of its size, painted in the background color. */
+    private static final double CENTER_IMAGE_PAD_RATIO = 0.1;
 
     private final QRCodeStyleDefinitions style;
     private final ModuleShape moduleShape;
@@ -59,8 +64,36 @@ public class QRCodeImageRenderer {
             }
         }
 
+        if (style.getCenterImage() != null) {
+            drawCenterImage(graphics, backgroundColor, size * moduleSize, imageSize);
+        }
+
         graphics.dispose();
         return image;
+    }
+
+    /**
+     * Scales the center image to fit the configured fraction of the symbol width, keeping
+     * its aspect ratio, and draws it over a background-colored pad at the image center.
+     */
+    private void drawCenterImage(Graphics2D graphics, Color backgroundColor, int symbolSize, int imageSize) {
+        BufferedImage centerImage = style.getCenterImage();
+        int maxSide = (int) Math.round(symbolSize * style.getCenterImageRatio());
+        double scale = Math.min((double) maxSide / centerImage.getWidth(),
+                (double) maxSide / centerImage.getHeight());
+        int width = Math.max(1, (int) Math.round(centerImage.getWidth() * scale));
+        int height = Math.max(1, (int) Math.round(centerImage.getHeight() * scale));
+
+        int x = (imageSize - width) / 2;
+        int y = (imageSize - height) / 2;
+        int pad = (int) Math.round(Math.max(width, height) * CENTER_IMAGE_PAD_RATIO);
+
+        graphics.setColor(backgroundColor);
+        graphics.fillRect(x - pad, y - pad, width + pad * 2, height + pad * 2);
+
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        graphics.drawImage(centerImage, x, y, width, height, null);
     }
 
     private ModuleCorners corners(int[][] matrix, int row, int col) {
