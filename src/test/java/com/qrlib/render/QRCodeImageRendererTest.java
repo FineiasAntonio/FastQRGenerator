@@ -89,4 +89,37 @@ class QRCodeImageRendererTest {
         assertEquals(Color.WHITE.getRGB(), image.getRGB(10, 10)); // left end, top-left corner
         assertEquals(Color.WHITE.getRGB(), image.getRGB(29, 10)); // right end, top-right corner
     }
+
+    @Test
+    void zeroCornerRadiusFillsTheWholeModule() {
+        MatrixData matrixData = new MatrixData(1);
+        matrixData.getMatrix()[0][0] = 1;
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .cornerRadius(0)
+                .borderThickness(1)
+                .build();
+
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
+
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(10, 10)); // corner is not clipped
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(15, 15));
+    }
+
+    @Test
+    void smallerCornerRadiusClipsLessOfTheCorner() {
+        MatrixData matrixData = new MatrixData(1);
+        matrixData.getMatrix()[0][0] = 1;
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .cornerRadius(0.2)
+                .borderThickness(1)
+                .build();
+
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
+
+        // With radius 2px the corner pixel is clipped, but (12,12) — clipped at radius 5 — is filled.
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(12, 12));
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(15, 15));
+    }
 }

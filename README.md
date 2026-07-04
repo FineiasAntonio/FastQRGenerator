@@ -121,19 +121,29 @@ qr.getAsImage(ImageExtensions.PNG, 8);
 byte[] bytes = qr.getAsImage(ImageExtensions.PNG).toByteArray();
 ```
 
-### Styling (WIP)
+### Styling
 
 ```java
 QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
-        .moduleColor("#1A1A2E")
-        .backgroundColor("#FFFFFF")
-        .borderColor("#FFFFFF")
+        .moduleColor("#1A1A2E")  // #RRGGBB or shorthand #RGB
+        .backgroundColor("#FFF")
         .borderThickness(4)      // quiet-zone width, in modules
-        .roundedCorners(true)
+        .cornerRadius(0.4)       // 0 (square) to 0.5 (fully round), as a fraction of the module
         .build();
 
 qr.getAsImage(ImageExtensions.PNG, 10, style);
 ```
+
+Notes:
+
+- Colors accept `#RRGGBB` or shorthand `#RGB` hex and are validated when set.
+- `borderColor(...)` tints the quiet zone; when not set it follows the
+  background color.
+- `cornerRadius(...)` implies rounded modules; `roundedCorners(true)` uses the
+  maximum radius. Rounded modules are drawn antialiased, and connected runs of
+  modules merge into a single smooth shape rounded only at its ends.
+- Keep enough contrast between module and background colors — low-contrast
+  symbols may not scan reliably.
 
 ### Printing to the terminal
 

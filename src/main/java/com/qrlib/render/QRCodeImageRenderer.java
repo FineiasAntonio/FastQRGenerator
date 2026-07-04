@@ -5,6 +5,7 @@ import com.qrlib.matrix.MatrixData;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 
 /**
@@ -19,7 +20,9 @@ public class QRCodeImageRenderer {
 
     public QRCodeImageRenderer(QRCodeStyleDefinitions style) {
         this.style = style;
-        this.moduleShape = style.isRoundedCorners() ? new RoundedModuleShape() : new SquareModuleShape();
+        this.moduleShape = style.isRoundedCorners()
+                ? new RoundedModuleShape(style.getCornerRadius())
+                : new SquareModuleShape();
     }
 
     public BufferedImage render(MatrixData matrixData, int moduleSize) {
@@ -34,6 +37,10 @@ public class QRCodeImageRenderer {
 
         BufferedImage image = new BufferedImage(imageSize, imageSize, BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics = image.createGraphics();
+        if (style.isRoundedCorners()) {
+            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        }
 
         graphics.setColor(borderColor);
         graphics.fillRect(0, 0, imageSize, imageSize);
