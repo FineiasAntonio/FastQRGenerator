@@ -10,6 +10,7 @@ import com.qrlib.config.ImageExtensions;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
 import com.qrlib.render.QRCodeImageRenderer;
+import com.qrlib.render.QRCodeTerminalRenderer;
 
 public class QRCode {
 
@@ -26,8 +27,9 @@ public class QRCode {
         return matrixData;
     }
 
+    /** Prints the symbol to {@code System.out} as ANSI background blocks. */
     public void print() {
-        matrixData.printImage();
+        System.out.print(new QRCodeTerminalRenderer().render(matrixData));
     }
 
     public ByteArrayOutputStream getAsImage() {
