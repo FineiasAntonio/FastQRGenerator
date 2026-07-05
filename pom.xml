@@ -4,7 +4,7 @@
 
   <groupId>io.github.fineiasantonio</groupId>
   <artifactId>fastqrgenerator</artifactId>
-  <version>0.0.1-alpha</version>
+  <version>1.0.0-beta</version>
   <packaging>jar</packaging>
 
   <name>FastQRGenerator</name>

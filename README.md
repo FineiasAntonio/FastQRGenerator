@@ -33,14 +33,14 @@ construction, mask selection and rendering — with **zero runtime dependencies*
 <dependency>
   <groupId>io.github.fineiasantonio</groupId>
   <artifactId>fastqrgenerator</artifactId>
-  <version>0.0.4-alpha</version>
+  <version>1.0.0-beta</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'io.github.fineiasantonio:fastqrgenerator:0.0.4-alpha'
+implementation 'io.github.fineiasantonio:fastqrgenerator:1.0.0-beta'
 ```
 
 ## Quick start
@@ -206,7 +206,7 @@ to version 40.
 
 ## Limitations
 
-This library is in **alpha**. Notable constraints:
+This library is in **beta**. Notable constraints:
 
 - Data is encoded in **byte mode (UTF-8)**, which accepts any text or binary
   payload; there is no numeric/alphanumeric/kanji mode optimization, so purely
