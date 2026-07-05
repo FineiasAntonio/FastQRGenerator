@@ -37,23 +37,30 @@ public class MatrixDataGenerator {
             int[] inputData) {
         int versionValue = version.getValue();
 
+        // Every trial rewrites all mask-dependent modules unconditionally — the zig-zag
+        // placement covers every unreserved module and the format/version writers cover their
+        // whole areas — so two buffers suffice for the eight trials: the current trial simply
+        // overwrites whatever the previous one left behind, and the best result so far is
+        // parked in the other buffer.
+        MatrixData currentMatrixData = new MatrixData(baseMatrixData);
         MatrixData bestMatrixData = null;
         int bestPenalty = Integer.MAX_VALUE;
 
         for (int mask = 0; mask < DataMaskApplier.MASK_PATTERN_COUNT; mask++) {
-            MatrixData matrixData = new MatrixData(baseMatrixData);
-            DataMaskApplier.applyDataAndMask(matrixData, inputData, mask);
+            DataMaskApplier.applyDataAndMask(currentMatrixData, inputData, mask);
 
-            FormatInformation.write(matrixData, eccLevel, mask);
+            FormatInformation.write(currentMatrixData, eccLevel, mask);
 
             if (versionValue >= VERSION_INFO_MIN_VERSION) {
-                VersionInformation.write(matrixData, versionValue);
+                VersionInformation.write(currentMatrixData, versionValue);
             }
 
-            int penalty = PenaltyCalculator.calculate(matrixData.getMatrix());
+            int penalty = PenaltyCalculator.calculate(currentMatrixData.getMatrix());
             if (penalty < bestPenalty) {
                 bestPenalty = penalty;
-                bestMatrixData = matrixData;
+                MatrixData previousBest = bestMatrixData;
+                bestMatrixData = currentMatrixData;
+                currentMatrixData = (previousBest != null) ? previousBest : new MatrixData(baseMatrixData);
             }
         }
 
