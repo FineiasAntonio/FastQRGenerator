@@ -11,11 +11,24 @@ import java.awt.geom.Path2D;
  */
 public class RoundedModuleShape implements ModuleShape {
 
-    private static final double CORNER_RADIUS_RATIO = 0.5;
+    private static final double DEFAULT_CORNER_RADIUS_RATIO = 0.5;
+
+    private final double cornerRadiusRatio;
+
+    public RoundedModuleShape() {
+        this(DEFAULT_CORNER_RADIUS_RATIO);
+    }
+
+    /**
+     * @param cornerRadiusRatio corner radius as a fraction of the module size, in {@code [0, 0.5]}
+     */
+    public RoundedModuleShape(double cornerRadiusRatio) {
+        this.cornerRadiusRatio = cornerRadiusRatio;
+    }
 
     @Override
     public void fill(Graphics2D graphics, int x, int y, int size, ModuleCorners corners) {
-        double radius = size * CORNER_RADIUS_RATIO;
+        double radius = size * cornerRadiusRatio;
         double left = x;
         double top = y;
         double right = x + size;

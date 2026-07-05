@@ -7,8 +7,6 @@ import com.qrlib.config.VersionSelector;
 import com.qrlib.encoding.QRDataEncoder;
 import com.qrlib.matrix.MatrixData;
 import com.qrlib.matrix.MatrixDataGenerator;
-import com.qrlib.template.QRCodeGeneratorFactory;
-import com.qrlib.template.QRCodeTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -30,9 +28,8 @@ public class QRCodeGenerator {
         QRCodeVersion version = resolveVersion(payloadBytes);
 
         Pipeline pipeline = pipelines.computeIfAbsent(version, v -> Pipeline.create(v, eccLevel));
-        QRCodeTemplate workingCopy = pipeline.template.copy();
         int[] encodedData = pipeline.encoder.encode(data);
-        MatrixData matrixData = MatrixDataGenerator.generateMatrixData(workingCopy.getMatrixData(),
+        MatrixData matrixData = MatrixDataGenerator.generateMatrixData(pipeline.baseMatrix,
                 version, eccLevel, encodedData);
         return new QRCode(matrixData);
     }
@@ -49,21 +46,25 @@ public class QRCodeGenerator {
         return fixedVersion;
     }
 
-    /** Reusable per-version setup: the base template and the data encoder. */
+    /**
+     * Reusable per-version setup: the base matrix (function patterns placed, never written to
+     * after creation — {@link MatrixDataGenerator#generateMatrixData} copies it per mask trial)
+     * and the data encoder.
+     */
     private static final class Pipeline {
-        final QRCodeTemplate template;
+        final MatrixData baseMatrix;
         final QRDataEncoder encoder;
 
-        private Pipeline(QRCodeTemplate template, QRDataEncoder encoder) {
-            this.template = template;
+        private Pipeline(MatrixData baseMatrix, QRDataEncoder encoder) {
+            this.baseMatrix = baseMatrix;
             this.encoder = encoder;
         }
 
         static Pipeline create(QRCodeVersion version, ECCLevel eccLevel) {
-            QRCodeTemplate template = QRCodeGeneratorFactory.createTemplate(version, eccLevel);
+            MatrixData baseMatrix = MatrixDataGenerator.createBaseMatrix(version);
             QRCodeCapacity capacity = QRCodeCapacity.getCapacity(version, eccLevel);
             QRDataEncoder encoder = new QRDataEncoder(capacity, version.getValue());
-            return new Pipeline(template, encoder);
+            return new Pipeline(baseMatrix, encoder);
         }
     }
 }
