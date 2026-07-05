@@ -16,8 +16,21 @@ public class MatrixDataGenerator {
 
     private static final int VERSION_INFO_MIN_VERSION = 7;
 
-    public static void placeCommonPatterns(MatrixData matrixData, QRCodeVersion version) {
+    // Version 1 is 21x21; each subsequent version adds 4 modules per side (ISO 18004).
+    private static final int VERSION_1_SIZE = 21;
+    private static final int SIZE_INCREMENT_PER_VERSION = 4;
+
+    /**
+     * Builds the base matrix for a version: the fixed function patterns placed and the
+     * format/version information areas reserved. The result is independent of the encoded
+     * data, so it can be built once per version and shared across generations —
+     * {@link #generateMatrixData} copies it before writing.
+     */
+    public static MatrixData createBaseMatrix(QRCodeVersion version) {
+        int size = VERSION_1_SIZE + (version.getValue() - 1) * SIZE_INCREMENT_PER_VERSION;
+        MatrixData matrixData = new MatrixData(size);
         StructuralPatternPlacer.placeCommonPatterns(matrixData, version);
+        return matrixData;
     }
 
     public static MatrixData generateMatrixData(MatrixData baseMatrixData, QRCodeVersion version, ECCLevel eccLevel,
