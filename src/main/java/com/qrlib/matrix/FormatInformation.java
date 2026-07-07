@@ -27,7 +27,7 @@ final class FormatInformation {
     }
 
     static void write(MatrixData matrixData, ECCLevel eccLevel, int maskPattern) {
-        int[][] matrix = matrixData.getMatrix();
+        byte[][] matrix = matrixData.getMatrix();
         int size = matrix.length;
 
         int[] formatBits = computeFormatBits(eccLevel, maskPattern);
@@ -40,12 +40,12 @@ final class FormatInformation {
 
         // Mirrored sequence across the top-right and bottom-left finder patterns
         for (int i = 0; i < FORMAT_INFO_BITS; i++) {
-            matrix[pos1[i][0]][pos1[i][1]] = formatBits[i];
+            matrix[pos1[i][0]][pos1[i][1]] = (byte) formatBits[i];
 
             if (i < QrLayout.FINDER_WITH_SEPARATOR_SIZE) {
-                matrix[QrLayout.FINDER_WITH_SEPARATOR_SIZE][size - 1 - i] = formatBits[i];
+                matrix[QrLayout.FINDER_WITH_SEPARATOR_SIZE][size - 1 - i] = (byte) formatBits[i];
             } else {
-                matrix[size - FORMAT_INFO_BITS + i][QrLayout.FINDER_WITH_SEPARATOR_SIZE] = formatBits[i];
+                matrix[size - FORMAT_INFO_BITS + i][QrLayout.FINDER_WITH_SEPARATOR_SIZE] = (byte) formatBits[i];
             }
         }
     }

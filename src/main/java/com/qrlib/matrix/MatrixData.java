@@ -6,17 +6,17 @@ package com.qrlib.matrix;
  */
 public class MatrixData {
 
-    private final int[][] data;
+    private final byte[][] data;
     private final boolean[][] reserved;
 
     public MatrixData(int size) {
-        this.data = new int[size][size];
+        this.data = new byte[size][size];
         this.reserved = new boolean[size][size];
     }
 
     public MatrixData(MatrixData matrixData) {
         int size = matrixData.data.length;
-        this.data = new int[size][size];
+        this.data = new byte[size][size];
         this.reserved = new boolean[size][size];
 
         for (int i = 0; i < size; i++) {
@@ -25,7 +25,7 @@ public class MatrixData {
         }
     }
 
-    public int[][] getMatrix() {
+    public byte[][] getMatrix() {
         return this.data;
     }
 

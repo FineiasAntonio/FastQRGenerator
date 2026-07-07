@@ -24,13 +24,15 @@ public class QRCodeGenerator {
     }
 
     public QRCode generate(String data) {
-        int payloadBytes = data.getBytes(StandardCharsets.UTF_8).length;
-        QRCodeVersion version = resolveVersion(payloadBytes);
+        // Encoded once and passed down: the byte length drives version resolution and the same
+        // bytes feed the formatter, instead of paying for getBytes twice per call.
+        byte[] payload = data.getBytes(StandardCharsets.UTF_8);
+        QRCodeVersion version = resolveVersion(payload.length);
 
         Pipeline pipeline = pipelines.computeIfAbsent(version, v -> Pipeline.create(v, eccLevel));
-        int[] encodedData = pipeline.encoder.encode(data);
+        int[] encodedData = pipeline.encoder.encode(payload);
         MatrixData matrixData = MatrixDataGenerator.generateMatrixData(pipeline.baseMatrix,
-                version, eccLevel, encodedData);
+                pipeline.placementOrder, version, eccLevel, encodedData);
         return new QRCode(matrixData);
     }
 
@@ -48,23 +50,26 @@ public class QRCodeGenerator {
 
     /**
      * Reusable per-version setup: the base matrix (function patterns placed, never written to
-     * after creation — {@link MatrixDataGenerator#generateMatrixData} copies it per mask trial)
-     * and the data encoder.
+     * after creation — {@link MatrixDataGenerator#generateMatrixData} copies it before writing),
+     * the zig-zag placement order derived from it, and the data encoder.
      */
     private static final class Pipeline {
         final MatrixData baseMatrix;
+        final int[] placementOrder;
         final QRDataEncoder encoder;
 
-        private Pipeline(MatrixData baseMatrix, QRDataEncoder encoder) {
+        private Pipeline(MatrixData baseMatrix, int[] placementOrder, QRDataEncoder encoder) {
             this.baseMatrix = baseMatrix;
+            this.placementOrder = placementOrder;
             this.encoder = encoder;
         }
 
         static Pipeline create(QRCodeVersion version, ECCLevel eccLevel) {
             MatrixData baseMatrix = MatrixDataGenerator.createBaseMatrix(version);
+            int[] placementOrder = MatrixDataGenerator.computePlacementOrder(baseMatrix);
             QRCodeCapacity capacity = QRCodeCapacity.getCapacity(version, eccLevel);
             QRDataEncoder encoder = new QRDataEncoder(capacity, version.getValue());
-            return new Pipeline(baseMatrix, encoder);
+            return new Pipeline(baseMatrix, placementOrder, encoder);
         }
     }
 }

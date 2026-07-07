@@ -32,8 +32,16 @@ public class DataCodewordFormatter {
     }
 
     public int[] format(String data) {
+        return format(data.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Formats an already-encoded UTF-8 payload. Callers that need the byte length beforehand
+     * (e.g. to resolve the symbol version) can encode once and pass the bytes here instead of
+     * paying for a second {@code getBytes} pass.
+     */
+    public int[] format(byte[] rawBytes) {
         int totalDataCapacity = capacity.getTotalDataCodewords();
-        byte[] rawBytes = data.getBytes(StandardCharsets.UTF_8);
 
         int characterCountBits = version < LONG_CHARACTER_COUNT_VERSION_THRESHOLD
                 ? SHORT_CHARACTER_COUNT_BITS

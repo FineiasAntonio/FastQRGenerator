@@ -37,7 +37,7 @@ public class QRCodeImageRenderer {
     }
 
     public BufferedImage render(MatrixData matrixData, int moduleSize) {
-        int[][] matrix = matrixData.getMatrix();
+        byte[][] matrix = matrixData.getMatrix();
         int size = matrix.length;
         int border = style.getBorderThickness();
         int imageSize = (size + border * 2) * moduleSize;
@@ -150,7 +150,7 @@ public class QRCodeImageRenderer {
         return circle;
     }
 
-    private ModuleCorners corners(int[][] matrix, int row, int col) {
+    private ModuleCorners corners(byte[][] matrix, int row, int col) {
         boolean up = isDark(matrix, row - 1, col);
         boolean down = isDark(matrix, row + 1, col);
         boolean left = isDark(matrix, row, col - 1);
@@ -159,7 +159,7 @@ public class QRCodeImageRenderer {
         return new ModuleCorners(!up && !left, !up && !right, !down && !right, !down && !left);
     }
 
-    private boolean isDark(int[][] matrix, int row, int col) {
+    private boolean isDark(byte[][] matrix, int row, int col) {
         if (row < 0 || row >= matrix.length || col < 0 || col >= matrix.length) {
             return false;
         }

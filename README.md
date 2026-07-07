@@ -189,7 +189,7 @@ qr.print(); // renders the symbol with ANSI background blocks
 If you only need the module data (no AWT), read it directly:
 
 ```java
-int[][] matrix = qr.getMatrixData().getMatrix(); // 1 = dark, 0 = light
+byte[][] matrix = qr.getMatrixData().getMatrix(); // 1 = dark, 0 = light
 ```
 
 ## Sample output
