@@ -14,6 +14,8 @@ final class PenaltyCalculator {
     private static final int N1_PENALTY = 3;
     private static final int N2_PENALTY = 3;
     private static final int N3_PENALTY = 40;
+    private static final int N3_CENTER_RUN_LENGTH = 3;
+    private static final int N3_LIGHT_ZONE_LENGTH = 4;
     private static final int N4_PENALTY = 10;
     private static final double DARK_MODULE_TARGET_PERCENT = 50.0;
     private static final double DARK_MODULE_DEVIATION_STEP_PERCENT = 5.0;
@@ -24,10 +26,10 @@ final class PenaltyCalculator {
     }
 
     /**
-     * Scores {@code matrix}. Columns are scanned in place with strided indexing
-     * ({@code matrix[i][col]}) rather than through a transposed copy — a full-matrix transpose
-     * per trial would also defeat the cutoff below, since an early-aborted trial would still
-     * have paid for the whole copy up front.
+     * Scores {@code matrix}. Rules 1 and 3 both examine runs of same-colored modules, so each
+     * row and column is run-length encoded once and both rules are scored from that encoding.
+     * Columns are gathered into a reused contiguous line buffer instead of transposing the
+     * whole matrix or paying a second array dereference per module.
      *
      * <p>{@code cutoff} enables early exit: penalties only accumulate, so once the running total
      * reaches the cutoff the final score is guaranteed to reach it too, and the scan aborts. The
@@ -39,10 +41,15 @@ final class PenaltyCalculator {
         int penalty = 0;
         int size = matrix.length;
 
-        // Rule 1: 5 or more consecutive modules of the same color
+        // Rules 1 and 3, from one run-length encoding per line
+        int[] runs = new int[size];
+        byte[] column = new byte[size];
         for (int i = 0; i < size; i++) {
-            penalty += evaluateRule1Row(matrix[i]);
-            penalty += evaluateRule1Column(matrix, i);
+            penalty += evaluateRules1And3(matrix[i], runs);
+            for (int r = 0; r < size; r++) {
+                column[r] = matrix[r][i];
+            }
+            penalty += evaluateRules1And3(column, runs);
             if (penalty >= cutoff) {
                 return penalty;
             }
@@ -50,27 +57,12 @@ final class PenaltyCalculator {
 
         // Rule 2: 2x2 blocks of the same color
         for (int r = 0; r < size - 1; r++) {
+            byte[] row = matrix[r];
+            byte[] next = matrix[r + 1];
             for (int c = 0; c < size - 1; c++) {
-                int color = matrix[r][c];
-                if (color == matrix[r][c + 1] && color == matrix[r + 1][c] && color == matrix[r + 1][c + 1]) {
+                int color = row[c];
+                if (color == row[c + 1] && color == next[c] && color == next[c + 1]) {
                     penalty += N2_PENALTY;
-                }
-            }
-            if (penalty >= cutoff) {
-                return penalty;
-            }
-        }
-
-        // Rule 3: Finder pattern 1:1:3:1:1 with 4 light modules on either side
-        for (int r = 0; r < size; r++) {
-            for (int c = 0; c < size; c++) {
-                if (c <= size - QrLayout.FINDER_PATTERN_SIZE) {
-                    if (isFinderPatternRow(matrix[r], c, size))
-                        penalty += N3_PENALTY;
-                }
-                if (r <= size - QrLayout.FINDER_PATTERN_SIZE) {
-                    if (isFinderPatternColumn(matrix, r, c, size))
-                        penalty += N3_PENALTY;
                 }
             }
             if (penalty >= cutoff) {
@@ -92,92 +84,53 @@ final class PenaltyCalculator {
         return penalty;
     }
 
-    private static int evaluateRule1Row(byte[] line) {
-        int penalty = 0;
+    /**
+     * Scores one line (row or column) against rules 1 and 3 from its run-length encoding.
+     *
+     * <p>Rule 1 penalizes each run of 5 or more same-colored modules. Rule 3 penalizes each
+     * dark 1:1:3:1:1 finder-like sequence (1011101) that has 4 light modules on at least one
+     * side, where modules beyond the line boundary count as light.
+     */
+    private static int evaluateRules1And3(byte[] line, int[] runs) {
+        int size = line.length;
+        int runCount = 0;
         int runColor = line[0];
         int runLength = 1;
-        for (int i = 1; i < line.length; i++) {
+        for (int i = 1; i < size; i++) {
             if (line[i] == runColor) {
                 runLength++;
             } else {
-                if (runLength >= N1_MIN_RUN_LENGTH)
-                    penalty += N1_PENALTY + (runLength - N1_MIN_RUN_LENGTH);
+                runs[runCount++] = runLength;
                 runColor = line[i];
                 runLength = 1;
             }
         }
-        if (runLength >= N1_MIN_RUN_LENGTH)
-            penalty += N1_PENALTY + (runLength - N1_MIN_RUN_LENGTH);
-        return penalty;
-    }
+        runs[runCount++] = runLength;
 
-    /** Column counterpart of {@link #evaluateRule1Row}, scanning {@code matrix[i][col]} in place. */
-    private static int evaluateRule1Column(byte[][] matrix, int col) {
         int penalty = 0;
-        int runColor = matrix[0][col];
-        int runLength = 1;
-        for (int i = 1; i < matrix.length; i++) {
-            if (matrix[i][col] == runColor) {
-                runLength++;
-            } else {
-                if (runLength >= N1_MIN_RUN_LENGTH)
-                    penalty += N1_PENALTY + (runLength - N1_MIN_RUN_LENGTH);
-                runColor = matrix[i][col];
-                runLength = 1;
+        for (int k = 0; k < runCount; k++) {
+            if (runs[k] >= N1_MIN_RUN_LENGTH) {
+                penalty += N1_PENALTY + (runs[k] - N1_MIN_RUN_LENGTH);
             }
         }
-        if (runLength >= N1_MIN_RUN_LENGTH)
-            penalty += N1_PENALTY + (runLength - N1_MIN_RUN_LENGTH);
+
+        // Runs alternate colors, so dark runs all share the parity of the first dark run. The
+        // finder-like sequence is a dark run of exactly 3 (runs[k]) between single-module light
+        // runs (runs[k-1], runs[k+1]) with dark runs on both outer sides (runs[k-2], runs[k+2]).
+        // A side has the required light zone when its outer dark run is a single module and the
+        // light run beyond it has 4+ modules or meets the line boundary.
+        int firstDarkRun = (line[0] == 1) ? 0 : 1;
+        for (int k = firstDarkRun + 2; k + 2 < runCount; k += 2) {
+            if (runs[k] == N3_CENTER_RUN_LENGTH && runs[k - 1] == 1 && runs[k + 1] == 1) {
+                boolean lightZoneBefore = runs[k - 2] == 1
+                        && (k - 2 == 0 || k - 3 == 0 || runs[k - 3] >= N3_LIGHT_ZONE_LENGTH);
+                boolean lightZoneAfter = runs[k + 2] == 1
+                        && (k + 2 == runCount - 1 || k + 3 == runCount - 1 || runs[k + 3] >= N3_LIGHT_ZONE_LENGTH);
+                if (lightZoneBefore || lightZoneAfter) {
+                    penalty += N3_PENALTY;
+                }
+            }
+        }
         return penalty;
-    }
-
-    private static boolean isFinderPatternRow(byte[] line, int start, int size) {
-        if (line[start] != 1 || line[start + 1] != 0 || line[start + 2] != 1 || line[start + 3] != 1 ||
-                line[start + 4] != 1 || line[start + 5] != 0 || line[start + 6] != 1)
-            return false;
-
-        // Check for 4 light modules before
-        boolean before = true;
-        for (int i = 1; i <= 4; i++) {
-            if (start - i >= 0 && line[start - i] == 1) {
-                before = false;
-                break;
-            }
-        }
-        // Check for 4 light modules after
-        boolean after = true;
-        for (int i = 1; i <= 4; i++) {
-            if (start + 6 + i < size && line[start + 6 + i] == 1) {
-                after = false;
-                break;
-            }
-        }
-        return before || after;
-    }
-
-    /** Column counterpart of {@link #isFinderPatternRow}, scanning {@code matrix[start + i][col]} in place. */
-    private static boolean isFinderPatternColumn(byte[][] matrix, int start, int col, int size) {
-        if (matrix[start][col] != 1 || matrix[start + 1][col] != 0 || matrix[start + 2][col] != 1
-                || matrix[start + 3][col] != 1 || matrix[start + 4][col] != 1
-                || matrix[start + 5][col] != 0 || matrix[start + 6][col] != 1)
-            return false;
-
-        // Check for 4 light modules before
-        boolean before = true;
-        for (int i = 1; i <= 4; i++) {
-            if (start - i >= 0 && matrix[start - i][col] == 1) {
-                before = false;
-                break;
-            }
-        }
-        // Check for 4 light modules after
-        boolean after = true;
-        for (int i = 1; i <= 4; i++) {
-            if (start + 6 + i < size && matrix[start + 6 + i][col] == 1) {
-                after = false;
-                break;
-            }
-        }
-        return before || after;
     }
 }
