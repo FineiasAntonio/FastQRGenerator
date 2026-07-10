@@ -13,6 +13,7 @@ import com.qrlib.config.ImageExtensions;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
 import com.qrlib.render.QRCodeImageRenderer;
+import com.qrlib.render.QRCodeSVGRenderer;
 import com.qrlib.render.QRCodeTerminalRenderer;
 
 public class QRCode {
@@ -30,9 +31,27 @@ public class QRCode {
         return matrixData;
     }
 
-    /** Prints the symbol to {@code System.out} as ANSI background blocks. */
     public void print() {
         System.out.print(new QRCodeTerminalRenderer().render(matrixData));
+    }
+
+    public String getAsSVG() {
+        return getAsSVG(MODULE_SIZE, DEFAULT_STYLE);
+    }
+
+    public String getAsSVG(int moduleSize) {
+        return getAsSVG(moduleSize, DEFAULT_STYLE);
+    }
+
+    public String getAsSVG(QRCodeStyleDefinitions style) {
+        return getAsSVG(MODULE_SIZE, style);
+    }
+
+    public String getAsSVG(int moduleSize, QRCodeStyleDefinitions style) {
+        if (moduleSize < 1) {
+            throw new IllegalArgumentException("moduleSize must be >= 1");
+        }
+        return new QRCodeSVGRenderer(style).render(matrixData, moduleSize);
     }
 
     public ByteArrayOutputStream getAsImage() {
@@ -55,15 +74,6 @@ public class QRCode {
         return getAsImage(extension, MODULE_SIZE, style);
     }
 
-    /**
-     * Renders the symbol with a configurable module size in pixels and visual style. The
-     * style's border thickness (in modules) takes the place of the quiet zone.
-     * <p>
-     * Values like 10 are suitable for display; smaller values (e.g. 2) round-trip better with
-     * ZXing's Java {@code Detector} for some version/payload combinations where upscaled bitmaps
-     * can fail detection even though the symbol is valid (same limitation affects ZXing's own
-     * encoder output).
-     */
     public ByteArrayOutputStream getAsImage(ImageExtensions extension, int moduleSize, QRCodeStyleDefinitions style) {
         if (moduleSize < 1) {
             throw new IllegalArgumentException("moduleSize must be >= 1");
@@ -71,15 +81,9 @@ public class QRCode {
 
         BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, moduleSize);
 
-        // MemoryCacheImageOutputStream keeps the encoder's working buffer in memory. Writing
-        // straight to the OutputStream would make ImageIO fall back to its default file cache,
-        // creating a temp file in java.io.tmpdir per call — needless disk I/O and file-descriptor
-        // pressure under concurrent load.
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ImageOutputStream output = new MemoryCacheImageOutputStream(baos)) {
             if (!ImageIO.write(image, extension.getExtension(), output)) {
-                // write() returning false means no registered writer handles the format; without
-                // this check the caller would silently receive an empty stream.
                 throw new IllegalStateException(
                         "No ImageIO writer available for format \"" + extension.getExtension() + "\"");
             }

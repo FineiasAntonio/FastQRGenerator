@@ -24,8 +24,6 @@ public class QRCodeGenerator {
     }
 
     public QRCode generate(String data) {
-        // Encoded once and passed down: the byte length drives version resolution and the same
-        // bytes feed the formatter, instead of paying for getBytes twice per call.
         byte[] payload = data.getBytes(StandardCharsets.UTF_8);
         QRCodeVersion version = resolveVersion(payload.length);
 

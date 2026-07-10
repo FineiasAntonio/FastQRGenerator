@@ -19,7 +19,7 @@ construction, mask selection and rendering — with **zero runtime dependencies*
 - **All error-correction levels** — L, M, Q, H.
 - **Automatic mask selection** following the ISO 18004 penalty rules.
 - **Styled rendering** — custom colors, border thickness and rounded modules.
-- **Multiple output formats** — PNG, JPG, JPEG, BMP, plus ANSI terminal printing.
+- **Multiple output formats** — PNG, JPG, JPEG, BMP, SVG, plus ANSI terminal printing.
 
 ## Requirements
 
@@ -177,6 +177,29 @@ new QRCodeGeneratorBuilder().ECCLevel(ECCLevel.H).build();
 As a rule of thumb: the default ratio (`0.2`) scans reliably at level `M` and
 above, the maximum ratio (`0.3`) requires `Q` or `H`, and level `L` should not
 be combined with a center image at all.
+
+### SVG output
+
+`getAsSVG(...)` renders the symbol as a standalone SVG document string — plain text
+built directly from the matrix, with no `java.awt` rasterization involved, so it also
+works on runtimes without AWT (e.g. Android):
+
+```java
+String svg = qr.getAsSVG(); // default style, 10px per module
+
+// with a custom pixel size and style (same styling options as raster output)
+String styled = qr.getAsSVG(8, style);
+
+Files.write(Paths.get("qr.svg"), svg.getBytes(StandardCharsets.UTF_8));
+```
+
+The `viewBox` is laid out in module units, so the symbol scales losslessly to any
+size — the module size only sets the document's default `width`/`height`. SVG is the
+natural choice for the web: browsers render it directly, files are compact, and it
+stays sharp at every zoom level.
+
+The one exception to the no-AWT guarantee: a style carrying a center image embeds it
+as a base64 PNG data URI, which requires `javax.imageio`.
 
 ### Printing to the terminal
 

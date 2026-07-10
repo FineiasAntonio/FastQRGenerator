@@ -2,11 +2,6 @@ package com.qrlib.matrix;
 
 import com.qrlib.config.QRCodeVersion;
 
-/**
- * Places the fixed function patterns of a QR symbol — finder patterns, separators, timing
- * patterns, alignment patterns and the dark module — and reserves the format/version
- * information areas, per ISO 18004. These modules are independent of the encoded data.
- */
 final class StructuralPatternPlacer {
 
     private StructuralPatternPlacer() {

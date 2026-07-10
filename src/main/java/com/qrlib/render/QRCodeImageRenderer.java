@@ -11,19 +11,10 @@ import java.awt.RenderingHints;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 
-/**
- * Renders a {@link MatrixData} symbol into a {@link BufferedImage}, applying a
- * {@link QRCodeStyleDefinitions}. The border thickness (in modules) takes the place of the
- * symbol's quiet zone, painted in the configured border color. When the style carries a
- * center image, it is drawn last, over a background-colored pad, so scanners rely on
- * error correction to recover the covered modules.
- */
 public class QRCodeImageRenderer {
 
-    /** Pad around the center image, as a fraction of its size, painted in the background color. */
     private static final double CENTER_IMAGE_PAD_RATIO = 0.1;
 
-    /** Corner arc of the rounded pad, as a fraction of the pad's smaller side. */
     private static final double ROUNDED_PAD_ARC_RATIO = 0.25;
 
     private final QRCodeStyleDefinitions style;
@@ -65,7 +56,7 @@ public class QRCodeImageRenderer {
                 if (matrix[row][col] == 1) {
                     int x = (col + border) * moduleSize;
                     int y = (row + border) * moduleSize;
-                    moduleShape.fill(graphics, x, y, moduleSize, corners(matrix, row, col));
+                    moduleShape.fill(graphics, x, y, moduleSize, ModuleCorners.at(matrix, row, col));
                 }
             }
         }
@@ -150,19 +141,4 @@ public class QRCodeImageRenderer {
         return circle;
     }
 
-    private ModuleCorners corners(byte[][] matrix, int row, int col) {
-        boolean up = isDark(matrix, row - 1, col);
-        boolean down = isDark(matrix, row + 1, col);
-        boolean left = isDark(matrix, row, col - 1);
-        boolean right = isDark(matrix, row, col + 1);
-
-        return new ModuleCorners(!up && !left, !up && !right, !down && !right, !down && !left);
-    }
-
-    private boolean isDark(byte[][] matrix, int row, int col) {
-        if (row < 0 || row >= matrix.length || col < 0 || col >= matrix.length) {
-            return false;
-        }
-        return matrix[row][col] == 1;
-    }
 }

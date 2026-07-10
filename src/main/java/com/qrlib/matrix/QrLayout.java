@@ -1,10 +1,5 @@
 package com.qrlib.matrix;
 
-/**
- * Structural module positions shared by the finder, separator, timing, format and version
- * information areas (ISO 18004). Centralizes the few constants that more than one of the
- * matrix-building helpers depends on.
- */
 final class QrLayout {
 
     private QrLayout() {

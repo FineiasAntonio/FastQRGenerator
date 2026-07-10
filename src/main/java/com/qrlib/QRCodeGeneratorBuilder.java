@@ -26,7 +26,6 @@ public class QRCodeGeneratorBuilder {
 
     public QRCodeGenerator build() {
         ECCLevel resolvedEccLevel = (eccLevel != null) ? eccLevel : ECCLevel.M;
-        // version may be null: the generator then picks the smallest version that fits each payload.
         return new QRCodeGenerator(version, resolvedEccLevel);
     }
 }
