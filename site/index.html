@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FastQRGenerator — fast, dependency-free QR codes for Java</title>
+<meta name="description" content="A fast Java library for generating QR codes with zero runtime dependencies. ISO/IEC 18004 from scratch: Reed-Solomon, mask selection, numeric mode, styled PNG/SVG output.">
+<style>
+  :root {
+    --bg: #fafafa;
+    --panel: #ffffff;
+    --text: #18181b;
+    --muted: #52525b;
+    --border: #e4e4e7;
+    --accent: #4f46e5;
+    --accent-contrast: #ffffff;
+    --code-bg: #f4f4f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b0d12;
+      --panel: #14161d;
+      --text: #e7e7ea;
+      --muted: #a1a1aa;
+      --border: #262830;
+      --accent: #818cf8;
+      --accent-contrast: #0b0d12;
+      --code-bg: #191b23;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 72px 0 56px; display: flex; align-items: center; gap: 48px; flex-wrap: wrap; }
+  .hero-text { flex: 1 1 380px; }
+  .hero h1 { font-size: 2.6rem; line-height: 1.15; letter-spacing: -0.02em; }
+  .hero .tagline { margin-top: 16px; font-size: 1.15rem; color: var(--muted); max-width: 34em; }
+  .hero .actions { margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 10px 20px; border-radius: 8px;
+    font-weight: 600; font-size: 0.95rem; border: 1px solid var(--border);
+  }
+  .btn:hover { text-decoration: none; filter: brightness(1.05); }
+  .btn-primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+  .btn-secondary { background: var(--panel); color: var(--text); }
+  .hero-qr {
+    flex: 0 0 auto; background: #ffffff; border-radius: 16px; padding: 8px;
+    border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+  }
+  .hero-qr img { display: block; width: 220px; height: 220px; }
+  .hero-qr figcaption { text-align: center; font-size: 0.75rem; color: #52525b; padding-bottom: 6px; }
+
+  .pill {
+    display: inline-block; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em;
+    color: var(--accent); border: 1px solid var(--accent); border-radius: 999px;
+    padding: 2px 12px; margin-bottom: 18px;
+  }
+
+  /* ---------- sections ---------- */
+  section { padding: 40px 0; border-top: 1px solid var(--border); }
+  h2 { font-size: 1.5rem; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .section-sub { color: var(--muted); margin-bottom: 28px; max-width: 44em; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+  }
+  .card h3 { font-size: 1rem; margin-bottom: 6px; }
+  .card p { font-size: 0.92rem; color: var(--muted); }
+
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; overflow-x: auto; font-size: 0.88rem; line-height: 1.55;
+  }
+  code { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  p code, li code, td code {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 6px; font-size: 0.85em;
+  }
+  .code-label { font-size: 0.8rem; font-weight: 600; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.06em; margin: 20px 0 8px; }
+
+  /* ---------- styling showcase ---------- */
+  .swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .swatch { background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; text-align: center; }
+  .swatch img { width: 100%; max-width: 200px; height: auto; border-radius: 8px; background: #fff; }
+  .swatch p { font-size: 0.85rem; color: var(--muted); margin-top: 10px; }
+  .swatch p code { font-size: 0.8em; }
+
+  /* ---------- table ---------- */
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  td strong { color: var(--accent); }
+
+  footer { border-top: 1px solid var(--border); padding: 32px 0 48px; color: var(--muted); font-size: 0.9rem; }
+
+  @media (max-width: 640px) {
+    .hero { padding-top: 48px; gap: 32px; }
+    .hero h1 { font-size: 2rem; }
+    .hero-qr { margin: 0 auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-text">
+      <span class="pill">Java 8+ &middot; zero dependencies</span>
+      <h1>FastQRGenerator</h1>
+      <p class="tagline">
+        A fast Java library for generating QR codes. The full ISO/IEC 18004 pipeline
+        implemented from scratch — Reed-Solomon error correction, mask selection,
+        numeric-mode packing and styled rendering — on top of the JDK alone.
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://github.com/FineiasAntonio/FastQRGenerator">View on GitHub</a>
+        <a class="btn btn-secondary" href="https://central.sonatype.com/artifact/io.github.fineiasantonio/fastqrgenerator">Maven Central</a>
+      </div>
+    </div>
+    <figure class="hero-qr">
+      <img src="hero.svg" alt="QR code linking to the FastQRGenerator repository, generated by the library itself" width="220" height="220">
+      <figcaption>generated by this library — scan me</figcaption>
+    </figure>
+  </header>
+
+  <section>
+    <h2>Features</h2>
+    <p class="section-sub">Everything needed to go from a string to a scannable symbol, with no transitive baggage.</p>
+    <div class="grid">
+      <div class="card">
+        <h3>Zero runtime dependencies</h3>
+        <p>Pure Java on top of the JDK. Nothing else lands on your classpath.</p>
+      </div>
+      <div class="card">
+        <h3>Full spec coverage</h3>
+        <p>QR versions 1–40, all error-correction levels (L, M, Q, H), automatic mask selection per the ISO 18004 penalty rules.</p>
+      </div>
+      <div class="card">
+        <h3>Numeric mode</h3>
+        <p>Pure digit payloads are auto-detected and packed at ~2.4&times; byte-mode density, often fitting a smaller symbol.</p>
+      </div>
+      <div class="card">
+        <h3>Automatic version selection</h3>
+        <p>The smallest symbol that fits the payload is chosen for you. Pin an explicit version only when you need one.</p>
+      </div>
+      <div class="card">
+        <h3>Styled rendering</h3>
+        <p>Custom colors, quiet-zone width, rounded modules and an embedded center logo — validated at build time.</p>
+      </div>
+      <div class="card">
+        <h3>Many output formats</h3>
+        <p>PNG, JPG, BMP, compact scalable SVG (works without AWT, e.g. on Android), ANSI terminal printing, or the raw module matrix.</p>
+      </div>
+      <div class="card">
+        <h3>Thread-safe and reusable</h3>
+        <p>One generator instance can be shared across threads; per-version setup is computed once and cached.</p>
+      </div>
+      <div class="card">
+        <h3>Fast by design</h3>
+        <p>Bit-level encoding, buffer reuse and early-exit penalty scoring keep generation in the microsecond range.</p>
+      </div>
+      <div class="card">
+        <h3>Spec-locked tests</h3>
+        <p>Encoders are verified against ISO 18004 reference vectors and golden matrix snapshots.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Installation</h2>
+    <div class="code-label">Maven</div>
+<pre><code>&lt;dependency&gt;
+  &lt;groupId&gt;io.github.fineiasantonio&lt;/groupId&gt;
+  &lt;artifactId&gt;fastqrgenerator&lt;/artifactId&gt;
+  &lt;version&gt;1.0.0-beta&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+    <div class="code-label">Gradle</div>
+<pre><code>implementation 'io.github.fineiasantonio:fastqrgenerator:1.0.0-beta'</code></pre>
+  </section>
+
+  <section>
+    <h2>Quick start</h2>
+    <p class="section-sub">No version or ECC level required — the smallest fitting version is chosen automatically, with level M by default.</p>
+<pre><code>QRCodeGenerator generator = new QRCodeGeneratorBuilder().build();
+
+QRCode qr = generator.generate("https://github.com/FineiasAntonio/FastQRGenerator");
+
+try (FileOutputStream out = new FileOutputStream("qr.png")) {
+    qr.writeImage(out, ImageExtensions.PNG);
+}
+
+String svg = qr.getAsSVG();   // scalable SVG, no AWT involved
+qr.print();                   // ANSI blocks straight to the terminal</code></pre>
+  </section>
+
+  <section>
+    <h2>Styling</h2>
+    <p class="section-sub">Colors, corner rounding and quiet-zone width are set through a validated style builder. All three symbols below were generated by this library.</p>
+    <div class="swatches">
+      <div class="swatch">
+        <img src="style-default.svg" alt="Default black-and-white QR code" loading="lazy">
+        <p>default style</p>
+      </div>
+      <div class="swatch">
+        <img src="style-indigo.svg" alt="Indigo QR code with fully rounded modules" loading="lazy">
+        <p><code>moduleColor("#4F46E5")</code><br><code>cornerRadius(0.5)</code></p>
+      </div>
+      <div class="swatch">
+        <img src="style-teal.svg" alt="Teal QR code with slightly rounded modules" loading="lazy">
+        <p><code>moduleColor("#0F766E")</code><br><code>cornerRadius(0.3)</code></p>
+      </div>
+    </div>
+    <div class="code-label">Example</div>
+<pre><code>QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+        .moduleColor("#4F46E5")
+        .backgroundColor("#FFFFFF")
+        .cornerRadius(0.5)
+        .centerImage(logo)        // optional; pair with ECCLevel.Q or H
+        .build();
+
+byte[] png = qr.toImageBytes(ImageExtensions.PNG, 10, style);</code></pre>
+  </section>
+
+  <section>
+    <h2>Numeric mode in numbers</h2>
+    <p class="section-sub">
+      Digit-only payloads — boletos, tracking codes, numeric IDs — are packed 3 digits per
+      10 bits instead of 8 bits per character. Smaller symbols mean faster generation and
+      easier scanning. Measured at ECC level M with automatic version selection:
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Digits</th><th>Byte mode</th><th>Numeric mode</th><th>Generation</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>47 (boleto)</td><td>V4 &middot; 33&times;33</td><td><strong>V2 &middot; 25&times;25</strong></td><td><strong>1.6&times; faster</strong></td></tr>
+          <tr><td>130</td><td>V8 &middot; 49&times;49</td><td><strong>V4 &middot; 33&times;33</strong></td><td><strong>3.1&times; faster</strong></td></tr>
+          <tr><td>500</td><td>V17 &middot; 85&times;85</td><td><strong>V10 &middot; 57&times;57</strong></td><td><strong>2.1&times; faster</strong></td></tr>
+          <tr><td>3000</td><td>does not fit</td><td><strong>V29 &middot; 133&times;133</strong></td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      Licensed under <a href="https://github.com/FineiasAntonio/FastQRGenerator/blob/main/LICENSE">Apache 2.0</a>
+      &middot; built by <a href="https://github.com/FineiasAntonio">Fineias Antonio</a>
+      &middot; every QR code on this page was generated by FastQRGenerator itself.
+    </p>
+  </footer>
+</div>
+
+</body>
+</html>

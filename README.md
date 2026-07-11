@@ -8,6 +8,8 @@ A fast, dependency-free Java library for generating QR Codes. It implements the
 ISO/IEC 18004 pipeline from scratch — Reed-Solomon error correction, matrix
 construction, mask selection and rendering — with **zero runtime dependencies**.
 
+**Project page:** [fineiasantonio.github.io/FastQRGenerator](https://fineiasantonio.github.io/FastQRGenerator/)
+
 <p align="center">
   <img src="samples/sample_V5.png" alt="Sample QR code" width="220">
 </p>
