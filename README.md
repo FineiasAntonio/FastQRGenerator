@@ -17,6 +17,8 @@ construction, mask selection and rendering — with **zero runtime dependencies*
 - **No runtime dependencies** — pure Java on top of the JDK only.
 - **Full version range** — QR versions 1 through 40.
 - **All error-correction levels** — L, M, Q, H.
+- **Numeric mode** — pure digit payloads are auto-detected and packed at ~2.4x
+  byte-mode density, often fitting a smaller symbol.
 - **Automatic mask selection** following the ISO 18004 penalty rules.
 - **Styled rendering** — custom colors, border thickness and rounded modules.
 - **Multiple output formats** — PNG, JPG, JPEG, BMP, SVG, plus ANSI terminal printing.
@@ -244,9 +246,10 @@ to version 40.
 
 This library is in **beta**. Notable constraints:
 
-- Data is encoded in **byte mode (UTF-8)**, which accepts any text or binary
-  payload; there is no numeric/alphanumeric/kanji mode optimization, so purely
-  numeric data is not encoded at maximum density.
+- Text is encoded in **byte mode (UTF-8)**, which accepts any payload; pure
+  digit payloads are automatically packed in **numeric mode**. There is no
+  alphanumeric/kanji mode optimization yet, so uppercase-only payloads are not
+  encoded at maximum density.
 - Image rendering depends on `java.awt`, which is unavailable on some runtimes
   (e.g. Android).
 

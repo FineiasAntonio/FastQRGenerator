@@ -42,6 +42,35 @@ class QRCodeGeneratorTest {
     }
 
     @Test
+    void pureDigitPayloadUsesNumericModeToFitASmallerSymbol() {
+        QRCodeGenerator generator = new QRCodeGeneratorBuilder().build();
+
+        // 17 digits exceed V1/M's byte-mode capacity (14 bytes) but fit its
+        // numeric-mode capacity (34 digits), so the symbol stays at V1 (21x21).
+        StringBuilder digits = new StringBuilder();
+        for (int i = 0; i < 17; i++) {
+            digits.append('7');
+        }
+
+        assertEquals(21, generator.generate(digits.toString()).getSize());
+    }
+
+    @Test
+    void fixedVersionRejectsOversizedNumericPayload() {
+        QRCodeGenerator generator = new QRCodeGeneratorBuilder()
+                .version(QRCodeVersion.V1)
+                .build();
+
+        // 35 digits exceed V1/M's numeric-mode capacity of 34.
+        StringBuilder digits = new StringBuilder();
+        for (int i = 0; i < 35; i++) {
+            digits.append('7');
+        }
+
+        assertThrows(IllegalArgumentException.class, () -> generator.generate(digits.toString()));
+    }
+
+    @Test
     void fixedVersionRejectsOversizedPayload() {
         QRCodeGenerator generator = new QRCodeGeneratorBuilder()
                 .version(QRCodeVersion.V1)
