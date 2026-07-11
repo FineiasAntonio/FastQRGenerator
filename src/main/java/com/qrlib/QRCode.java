@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.UncheckedIOException;
 
 import javax.imageio.ImageIO;
@@ -33,7 +34,15 @@ public class QRCode {
     }
 
     public void print() {
-        System.out.print(new QRCodeTerminalRenderer().render(matrixData));
+        print(System.out);
+    }
+
+    public void print(PrintStream out) {
+        out.print(getAsTerminalString());
+    }
+
+    public String getAsTerminalString() {
+        return new QRCodeTerminalRenderer().render(matrixData);
     }
 
     public String getAsSVG() {

@@ -208,7 +208,10 @@ as a base64 PNG data URI, which requires `javax.imageio`.
 ### Printing to the terminal
 
 ```java
-qr.print(); // renders the symbol with ANSI background blocks
+qr.print();                     // renders the symbol with ANSI background blocks on System.out
+qr.print(System.err);           // or on any PrintStream
+
+String ansi = qr.getAsTerminalString(); // the same output as a String
 ```
 
 ### Accessing the raw matrix
