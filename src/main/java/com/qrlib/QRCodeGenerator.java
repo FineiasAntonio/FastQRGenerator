@@ -12,6 +12,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Generates QR symbols from text payloads, encoding them in byte mode (UTF-8) per
+ * ISO/IEC 18004. Instances are created through {@link QRCodeGeneratorBuilder} and hold the
+ * configured symbol version (or automatic selection) and error-correction level.
+ * <p>
+ * This class is thread-safe: a single instance can be shared across threads and
+ * {@link #generate(String)} may be called concurrently. Per-version setup (base matrix,
+ * placement order, encoder) is computed once and cached, so reusing one generator for many
+ * payloads is cheaper than creating a new one per call.
+ */
 public class QRCodeGenerator {
 
     private final QRCodeVersion fixedVersion; // null => smallest fitting version is chosen per payload
@@ -23,6 +33,14 @@ public class QRCodeGenerator {
         this.eccLevel = eccLevel;
     }
 
+    /**
+     * Encodes the given text as a QR symbol.
+     *
+     * @param data the payload, encoded as UTF-8 bytes
+     * @return the generated symbol, ready for rendering
+     * @throws IllegalArgumentException if the payload does not fit the configured (or largest)
+     *         version at the configured error-correction level
+     */
     public QRCode generate(String data) {
         byte[] payload = data.getBytes(StandardCharsets.UTF_8);
         QRCodeVersion version = resolveVersion(payload.length);
