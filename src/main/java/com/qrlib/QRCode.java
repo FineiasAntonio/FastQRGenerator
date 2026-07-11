@@ -21,11 +21,11 @@ import com.qrlib.render.QRCodeTerminalRenderer;
 /**
  * A generated QR symbol, ready to be rendered as a raster image ({@link #writeImage} /
  * {@link #toImageBytes}), an SVG document ({@link #getAsSVG}), ANSI terminal text
- * ({@link #print} / {@link #getAsTerminalString}) or consumed as a raw module matrix
- * ({@link #getMatrixData}).
+ * ({@link #print} / {@link #getAsTerminalString}) or consumed as raw module data
+ * ({@link #isDark(int, int)} / {@link #getMatrixData()}).
  * <p>
- * Instances are safe for concurrent use as long as the matrix returned by
- * {@link #getMatrixData()} is not modified: it is the live backing array, not a copy.
+ * Instances are immutable and safe for concurrent use: {@link #getMatrixData()} returns a
+ * snapshot copy, so the symbol cannot be modified after generation.
  */
 public class QRCode {
 
@@ -39,11 +39,20 @@ public class QRCode {
     }
 
     /**
-     * Returns the module matrix backing this symbol ({@code 1} = dark, {@code 0} = light).
-     * The returned object is not a copy; modifying it corrupts the symbol.
+     * Returns a snapshot copy of the module matrix; modifying it does not affect this symbol.
+     * For reading single modules without copying, use {@link #isDark(int, int)}.
      */
     public MatrixData getMatrixData() {
-        return matrixData;
+        return new MatrixData(matrixData);
+    }
+
+    /** Side length of the symbol, in modules. */
+    public int getSize() {
+        return matrixData.getSize();
+    }
+
+    public boolean isDark(int row, int col) {
+        return matrixData.isDark(row, col);
     }
 
     /** Prints the symbol to {@link System#out} as ANSI background blocks. */

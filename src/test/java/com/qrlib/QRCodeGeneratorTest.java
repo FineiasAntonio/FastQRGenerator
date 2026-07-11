@@ -23,20 +23,20 @@ class QRCodeGeneratorTest {
         // "HI" fits in V1 (21x21) at the default ECC level M.
         QRCode qrCode = generator.generate("HI");
 
-        assertEquals(21, qrCode.getMatrixData().getMatrix().length);
+        assertEquals(21, qrCode.getSize());
     }
 
     @Test
     void autoSelectedVersionGrowsWithPayload() {
         QRCodeGenerator generator = new QRCodeGeneratorBuilder().build();
 
-        int smallSize = generator.generate("HI").getMatrixData().getMatrix().length;
+        int smallSize = generator.generate("HI").getSize();
 
         StringBuilder bigPayload = new StringBuilder();
         for (int i = 0; i < 500; i++) {
             bigPayload.append("X");
         }
-        int bigSize = generator.generate(bigPayload.toString()).getMatrixData().getMatrix().length;
+        int bigSize = generator.generate(bigPayload.toString()).getSize();
 
         assertTrue(bigSize > smallSize, "A larger payload should auto-select a larger symbol");
     }
@@ -65,7 +65,7 @@ class QRCodeGeneratorTest {
 
         QRCode qrCode = generator.generate("HI");
 
-        assertEquals(21, qrCode.getMatrixData().getMatrix().length);
+        assertEquals(21, qrCode.getSize());
     }
 
     @Test

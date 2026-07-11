@@ -28,7 +28,7 @@ final class VersionInformation {
     }
 
     static void write(MatrixData matrixData, int version) {
-        byte[][] matrix = matrixData.getMatrix();
+        byte[][] matrix = matrixData.matrix();
         int size = matrix.length;
 
         int encoded = computeVersionBits(version);

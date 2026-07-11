@@ -27,7 +27,7 @@ final class FormatInformation {
     }
 
     static void write(MatrixData matrixData, ECCLevel eccLevel, int maskPattern) {
-        byte[][] matrix = matrixData.getMatrix();
+        byte[][] matrix = matrixData.matrix();
         int size = matrix.length;
 
         int[] formatBits = computeFormatBits(eccLevel, maskPattern);

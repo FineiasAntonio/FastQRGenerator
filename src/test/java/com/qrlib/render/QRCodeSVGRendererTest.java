@@ -21,7 +21,7 @@ class QRCodeSVGRendererTest {
     @Test
     void defaultStyleEmitsScaledDocumentWithModuleUnitViewBox() {
         MatrixData matrixData = new MatrixData(3);
-        matrixData.getMatrix()[1][1] = 1;
+        matrixData.setDark(1, 1, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder().build();
         String svg = new QRCodeSVGRenderer(style).render(matrixData, 2);
@@ -38,8 +38,8 @@ class QRCodeSVGRendererTest {
     @Test
     void customColorsAndBorderThicknessAreApplied() {
         MatrixData matrixData = new MatrixData(2);
-        matrixData.getMatrix()[0][0] = 1;
-        matrixData.getMatrix()[1][1] = 1;
+        matrixData.setDark(0, 0, true);
+        matrixData.setDark(1, 1, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .moduleColor("#FF0000")
@@ -59,7 +59,7 @@ class QRCodeSVGRendererTest {
     @Test
     void borderMatchingTheBackgroundCollapsesIntoASingleRect() {
         MatrixData matrixData = new MatrixData(2);
-        matrixData.getMatrix()[0][0] = 1;
+        matrixData.setDark(0, 0, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder().build(); // border follows background
         String svg = new QRCodeSVGRenderer(style).render(matrixData, 10);
@@ -71,9 +71,9 @@ class QRCodeSVGRendererTest {
     @Test
     void horizontalRunsOfSquareModulesMergeIntoOneSubpath() {
         MatrixData matrixData = new MatrixData(3);
-        matrixData.getMatrix()[0][0] = 1;
-        matrixData.getMatrix()[0][1] = 1;
-        matrixData.getMatrix()[0][2] = 1;
+        matrixData.setDark(0, 0, true);
+        matrixData.setDark(0, 1, true);
+        matrixData.setDark(0, 2, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder().borderThickness(0).build();
         String svg = new QRCodeSVGRenderer(style).render(matrixData, 10);
@@ -87,8 +87,8 @@ class QRCodeSVGRendererTest {
     @Test
     void roundedCornersOnlyAppearAtTheEndsOfConnectedModules() {
         MatrixData matrixData = new MatrixData(2);
-        matrixData.getMatrix()[0][0] = 1;
-        matrixData.getMatrix()[0][1] = 1;
+        matrixData.setDark(0, 0, true);
+        matrixData.setDark(0, 1, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .roundedCorners(true)
@@ -109,7 +109,7 @@ class QRCodeSVGRendererTest {
     @Test
     void cornerRadiusControlsTheCurveOffsets() {
         MatrixData matrixData = new MatrixData(1);
-        matrixData.getMatrix()[0][0] = 1;
+        matrixData.setDark(0, 0, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .cornerRadius(0.2)
@@ -128,7 +128,7 @@ class QRCodeSVGRendererTest {
     @Test
     void zeroCornerRadiusFallsBackToSquareModules() {
         MatrixData matrixData = new MatrixData(1);
-        matrixData.getMatrix()[0][0] = 1;
+        matrixData.setDark(0, 0, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .cornerRadius(0)
@@ -230,7 +230,7 @@ class QRCodeSVGRendererTest {
         MatrixData matrixData = new MatrixData(size);
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
-                matrixData.getMatrix()[row][col] = 1;
+                matrixData.setDark(row, col, true);
             }
         }
         return matrixData;

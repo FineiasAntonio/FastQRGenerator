@@ -111,7 +111,7 @@ public class Benchmark {
     }
 
     private static int generate(QRCodeGenerator generator, String payload) {
-        return generator.generate(payload).getMatrixData().getMatrix()[0][0];
+        return generator.generate(payload).isDark(0, 0) ? 1 : 0;
     }
 
     private static String payload(int bytes) {

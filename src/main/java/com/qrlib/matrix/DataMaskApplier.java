@@ -31,7 +31,7 @@ final class DataMaskApplier {
      * recomputed on each of the eight mask trials.
      */
     static void applyDataAndMask(MatrixData matrixData, int[] codewords, int maskPattern, int[] placementOrder) {
-        byte[][] matrix = matrixData.getMatrix();
+        byte[][] matrix = matrixData.matrix();
 
         int totalBits = codewords.length * BITS_PER_BYTE;
         int bitIndex = 0;
@@ -55,8 +55,8 @@ final class DataMaskApplier {
      * version's reserved map, so the result can be computed once per version and shared.
      */
     static int[] computePlacementOrder(MatrixData matrixData) {
-        int size = matrixData.getMatrix().length;
-        boolean[][] reserved = matrixData.getReserved();
+        int size = matrixData.matrix().length;
+        boolean[][] reserved = matrixData.reserved();
 
         int[] order = new int[size * size];
         int count = 0;

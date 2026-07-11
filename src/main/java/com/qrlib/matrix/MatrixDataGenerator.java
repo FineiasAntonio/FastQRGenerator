@@ -70,7 +70,7 @@ public class MatrixDataGenerator {
 
             // Passing the best score so far as cutoff lets the calculator abort a trial as soon
             // as it is provably worse than the current winner (penalties only accumulate).
-            int penalty = PenaltyCalculator.calculate(scratch.getMatrix(), bestPenalty);
+            int penalty = PenaltyCalculator.calculate(scratch.matrix(), bestPenalty);
             if (penalty < bestPenalty) {
                 bestPenalty = penalty;
                 bestMask = mask;

@@ -52,9 +52,9 @@ final class StructuralPatternPlacer {
     };
 
     static void placeCommonPatterns(MatrixData matrixData, QRCodeVersion version) {
-        int size = matrixData.getMatrix().length;
-        byte[][] matrix = matrixData.getMatrix();
-        boolean[][] reserved = matrixData.getReserved();
+        int size = matrixData.matrix().length;
+        byte[][] matrix = matrixData.matrix();
+        boolean[][] reserved = matrixData.reserved();
         int ver = version.getValue();
 
         drawFinderPattern(matrix, reserved, 0, 0);

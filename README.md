@@ -219,8 +219,14 @@ String ansi = qr.getAsTerminalString(); // the same output as a String
 If you only need the module data (no AWT), read it directly:
 
 ```java
-byte[][] matrix = qr.getMatrixData().getMatrix(); // 1 = dark, 0 = light
+int size = qr.getSize();                          // side length, in modules
+boolean dark = qr.isDark(row, col);               // read a single module
+
+byte[][] matrix = qr.getMatrixData().getMatrix(); // snapshot copy, 1 = dark, 0 = light
 ```
+
+`getMatrixData()` returns a snapshot: modifying it (or the array from `getMatrix()`)
+never affects the generated symbol.
 
 ## Sample output
 
