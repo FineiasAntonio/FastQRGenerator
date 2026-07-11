@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FastQRGenerator — QR codes rápidos e sem dependências para Java</title>
+<meta name="description" content="Biblioteca Java rápida para gerar QR codes sem nenhuma dependência de runtime. ISO/IEC 18004 do zero: Reed-Solomon, seleção de máscara, modo numérico e saída estilizada em PNG/SVG.">
+<link rel="alternate" hreflang="en" href="https://fineiasantonio.github.io/FastQRGenerator/">
+<link rel="alternate" hreflang="pt-BR" href="https://fineiasantonio.github.io/FastQRGenerator/pt-br/">
+<style>
+  :root {
+    --bg: #fafafa;
+    --panel: #ffffff;
+    --text: #18181b;
+    --muted: #52525b;
+    --border: #e4e4e7;
+    --accent: #4f46e5;
+    --accent-contrast: #ffffff;
+    --code-bg: #f4f4f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b0d12;
+      --panel: #14161d;
+      --text: #e7e7ea;
+      --muted: #a1a1aa;
+      --border: #262830;
+      --accent: #818cf8;
+      --accent-contrast: #0b0d12;
+      --code-bg: #191b23;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 72px 0 56px; display: flex; align-items: center; gap: 48px; flex-wrap: wrap; }
+  .hero-text { flex: 1 1 380px; }
+  .hero h1 { font-size: 2.6rem; line-height: 1.15; letter-spacing: -0.02em; }
+  .hero .tagline { margin-top: 16px; font-size: 1.15rem; color: var(--muted); max-width: 34em; }
+  .hero .actions { margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 10px 20px; border-radius: 8px;
+    font-weight: 600; font-size: 0.95rem; border: 1px solid var(--border);
+  }
+  .btn:hover { text-decoration: none; filter: brightness(1.05); }
+  .btn-primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+  .btn-secondary { background: var(--panel); color: var(--text); }
+  .hero-qr {
+    flex: 0 0 auto; background: #ffffff; border-radius: 16px; padding: 8px;
+    border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+  }
+  .hero-qr img { display: block; width: 220px; height: 220px; }
+  .hero-qr figcaption { text-align: center; font-size: 0.75rem; color: #52525b; padding-bottom: 6px; }
+
+  .pill {
+    display: inline-block; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em;
+    color: var(--accent); border: 1px solid var(--accent); border-radius: 999px;
+    padding: 2px 12px; margin-bottom: 18px;
+  }
+
+  /* ---------- sections ---------- */
+  section { padding: 40px 0; border-top: 1px solid var(--border); }
+  h2 { font-size: 1.5rem; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .section-sub { color: var(--muted); margin-bottom: 28px; max-width: 44em; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+  }
+  .card h3 { font-size: 1rem; margin-bottom: 6px; }
+  .card p { font-size: 0.92rem; color: var(--muted); }
+
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; overflow-x: auto; font-size: 0.88rem; line-height: 1.55;
+  }
+  code { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  p code, li code, td code {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 6px; font-size: 0.85em;
+  }
+  .code-label { font-size: 0.8rem; font-weight: 600; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.06em; margin: 20px 0 8px; }
+
+  /* ---------- styling showcase ---------- */
+  .swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .swatch { background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; text-align: center; }
+  .swatch img { width: 100%; max-width: 200px; height: auto; border-radius: 8px; background: #fff; }
+  .swatch p { font-size: 0.85rem; color: var(--muted); margin-top: 10px; }
+  .swatch p code { font-size: 0.8em; }
+
+  /* ---------- language switcher ---------- */
+  .lang {
+    display: flex; justify-content: flex-end; gap: 8px; padding-top: 20px;
+    font-size: 0.82rem; font-weight: 600;
+  }
+  .lang a, .lang span {
+    padding: 3px 12px; border-radius: 999px; border: 1px solid var(--border);
+  }
+  .lang span { color: var(--accent); border-color: var(--accent); }
+  .lang a { color: var(--muted); }
+  .lang a:hover { color: var(--text); text-decoration: none; }
+
+  /* ---------- pipeline steps ---------- */
+  .steps { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: step; }
+  .step {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px 18px 66px; position: relative; counter-increment: step;
+  }
+  .step::before {
+    content: counter(step);
+    position: absolute; left: 18px; top: 19px; width: 30px; height: 30px;
+    border-radius: 999px; background: var(--accent); color: var(--accent-contrast);
+    font-weight: 700; font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step h3 { font-size: 1rem; margin-bottom: 4px; }
+  .step p { font-size: 0.92rem; color: var(--muted); }
+
+  /* ---------- table ---------- */
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  td strong { color: var(--accent); }
+
+  footer { border-top: 1px solid var(--border); padding: 32px 0 48px; color: var(--muted); font-size: 0.9rem; }
+
+  @media (max-width: 640px) {
+    .hero { padding-top: 48px; gap: 32px; }
+    .hero h1 { font-size: 2rem; }
+    .hero-qr { margin: 0 auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <nav class="lang" aria-label="Idioma">
+    <a href="../" lang="en" hreflang="en">EN</a>
+    <span aria-current="true">PT-BR</span>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-text">
+      <span class="pill">Java 8+ &middot; zero dependências</span>
+      <h1>FastQRGenerator</h1>
+      <p class="tagline">
+        Uma biblioteca Java rápida para gerar QR codes. O pipeline completo da
+        ISO/IEC 18004 implementado do zero — correção de erros Reed-Solomon, seleção de
+        máscara, empacotamento em modo numérico e renderização estilizada — usando apenas o JDK.
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://github.com/FineiasAntonio/FastQRGenerator">Ver no GitHub</a>
+        <a class="btn btn-secondary" href="https://central.sonatype.com/artifact/io.github.fineiasantonio/fastqrgenerator">Maven Central</a>
+      </div>
+    </div>
+    <figure class="hero-qr">
+      <img src="../hero.svg" alt="QR code apontando para o repositório do FastQRGenerator, gerado pela própria biblioteca" width="220" height="220">
+      <figcaption>gerado por esta biblioteca — escaneie</figcaption>
+    </figure>
+  </header>
+
+  <section>
+    <h2>Recursos</h2>
+    <p class="section-sub">Tudo que é preciso para ir de uma string a um símbolo escaneável, sem bagagem transitiva.</p>
+    <div class="grid">
+      <div class="card">
+        <h3>Zero dependências de runtime</h3>
+        <p>Java puro sobre o JDK. Nada mais entra no seu classpath.</p>
+      </div>
+      <div class="card">
+        <h3>Cobertura completa da spec</h3>
+        <p>Versões 1–40, todos os níveis de correção de erro (L, M, Q, H), seleção automática de máscara pelas regras de penalidade da ISO 18004.</p>
+      </div>
+      <div class="card">
+        <h3>Modo numérico</h3>
+        <p>Payloads só de dígitos são detectados automaticamente e empacotados com ~2,4&times; a densidade do byte mode, frequentemente cabendo num símbolo menor.</p>
+      </div>
+      <div class="card">
+        <h3>Seleção automática de versão</h3>
+        <p>O menor símbolo que comporta o payload é escolhido para você. Fixe uma versão explícita só quando precisar.</p>
+      </div>
+      <div class="card">
+        <h3>Renderização estilizada</h3>
+        <p>Cores customizadas, largura da zona de silêncio, módulos arredondados e logo central embutido — tudo validado na construção.</p>
+      </div>
+      <div class="card">
+        <h3>Vários formatos de saída</h3>
+        <p>PNG, JPG, BMP, SVG escalável e compacto (funciona sem AWT, ex.: Android), impressão ANSI no terminal ou a matriz de módulos crua.</p>
+      </div>
+      <div class="card">
+        <h3>Thread-safe e reutilizável</h3>
+        <p>Uma instância do gerador pode ser compartilhada entre threads; o setup por versão é computado uma vez e cacheado.</p>
+      </div>
+      <div class="card">
+        <h3>Rápida por construção</h3>
+        <p>Codificação em nível de bits, reuso de buffers e pontuação de penalidade com saída antecipada mantêm a geração na casa dos microssegundos.</p>
+      </div>
+      <div class="card">
+        <h3>Testes travados na spec</h3>
+        <p>Os encoders são verificados contra vetores de referência da ISO 18004 e snapshots dourados de matriz.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Instalação</h2>
+    <div class="code-label">Maven</div>
+<pre><code>&lt;dependency&gt;
+  &lt;groupId&gt;io.github.fineiasantonio&lt;/groupId&gt;
+  &lt;artifactId&gt;fastqrgenerator&lt;/artifactId&gt;
+  &lt;version&gt;1.0.0-beta&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+    <div class="code-label">Gradle</div>
+<pre><code>implementation 'io.github.fineiasantonio:fastqrgenerator:1.0.0-beta'</code></pre>
+  </section>
+
+  <section>
+    <h2>Começando</h2>
+    <p class="section-sub">Nenhuma versão ou nível de ECC é obrigatório — a menor versão que couber é escolhida automaticamente, com nível M por padrão.</p>
+<pre><code>QRCodeGenerator generator = new QRCodeGeneratorBuilder().build();
+
+QRCode qr = generator.generate("https://github.com/FineiasAntonio/FastQRGenerator");
+
+try (FileOutputStream out = new FileOutputStream("qr.png")) {
+    qr.writeImage(out, ImageExtensions.PNG);
+}
+
+String svg = qr.getAsSVG();   // SVG escalável, sem envolver AWT
+qr.print();                   // blocos ANSI direto no terminal</code></pre>
+  </section>
+
+  <section>
+    <h2>Estilização</h2>
+    <p class="section-sub">Cores, arredondamento de cantos e largura da zona de silêncio são definidos por um builder de estilo validado. Os três símbolos abaixo foram gerados por esta biblioteca.</p>
+    <div class="swatches">
+      <div class="swatch">
+        <img src="../style-default.svg" alt="QR code padrão em preto e branco" loading="lazy">
+        <p>estilo padrão</p>
+      </div>
+      <div class="swatch">
+        <img src="../style-indigo.svg" alt="QR code índigo com módulos totalmente arredondados" loading="lazy">
+        <p><code>moduleColor("#4F46E5")</code><br><code>cornerRadius(0.5)</code></p>
+      </div>
+      <div class="swatch">
+        <img src="../style-teal.svg" alt="QR code verde-azulado com módulos levemente arredondados" loading="lazy">
+        <p><code>moduleColor("#0F766E")</code><br><code>cornerRadius(0.3)</code></p>
+      </div>
+    </div>
+    <div class="code-label">Exemplo</div>
+<pre><code>QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+        .moduleColor("#4F46E5")
+        .backgroundColor("#FFFFFF")
+        .cornerRadius(0.5)
+        .centerImage(logo)        // opcional; combine com ECCLevel.Q ou H
+        .build();
+
+byte[] png = qr.toImageBytes(ImageExtensions.PNG, 10, style);</code></pre>
+  </section>
+
+  <section>
+    <h2>Como um QR code é gerado</h2>
+    <p class="section-sub">
+      A biblioteca implementa do zero o pipeline completo da ISO/IEC 18004. Isto é o que
+      acontece entre <code>generate("...")</code> e um símbolo escaneável:
+    </p>
+    <ol class="steps">
+      <li class="step">
+        <h3>Detecção de modo e codificação em bits</h3>
+        <p>O payload é varrido uma vez: só dígitos seleciona o modo numérico (3 dígitos
+        empacotados em 10 bits); qualquer outra coisa seleciona o byte mode (UTF-8). O
+        segmento de dados abre com um indicador de modo de 4 bits e um contador de
+        caracteres, seguidos do payload empacotado, de um terminador e dos codewords de
+        preenchimento alternados <code>0xEC</code>/<code>0x11</code> que completam
+        exatamente a capacidade de dados do símbolo.</p>
+      </li>
+      <li class="step">
+        <h3>Seleção de versão</h3>
+        <p>Com o tamanho exato em bits conhecido, é selecionada a menor das 40 versões de
+        símbolo (de 21&times;21 até 177&times;177 módulos) capaz de comportá-lo no nível de
+        correção de erro escolhido — a menos que uma versão tenha sido fixada explicitamente.</p>
+      </li>
+      <li class="step">
+        <h3>Correção de erros Reed-Solomon</h3>
+        <p>Os codewords de dados são divididos em blocos, e cada bloco é dividido por um
+        polinômio gerador sobre o corpo de Galois GF(2&#8312;); o resto dessa divisão vira os
+        codewords de correção de erro do bloco. É essa redundância que permite que um símbolo
+        sujo, danificado ou coberto por um logo ainda seja decodificado: os níveis L/M/Q/H
+        recuperam cerca de 7/15/25/30% dos codewords.</p>
+      </li>
+      <li class="step">
+        <h3>Intercalação</h3>
+        <p>Os blocos de dados e de correção são entrelaçados codeword a codeword. Danos
+        físicos tendem a ser localizados, então espalhar cada bloco pelo símbolo inteiro faz
+        com que um risco ou mancha tire um pouco de cada bloco em vez de destruir um por
+        completo.</p>
+      </li>
+      <li class="step">
+        <h3>Construção da matriz</h3>
+        <p>Os padrões de função são estampados na grade: os três padrões localizadores com
+        seus separadores, as linhas de timing, os padrões de alinhamento e o módulo escuro —
+        além das áreas reservadas para as informações de formato e versão. Os bits dos
+        codewords então preenchem os módulos restantes seguindo o zigue-zague da spec, subindo
+        e descendo em colunas de dois módulos a partir do canto inferior direito. A biblioteca
+        computa essa ordem de posicionamento uma única vez por versão e a mantém em cache.</p>
+      </li>
+      <li class="step">
+        <h3>Seleção de máscara</h3>
+        <p>Oito padrões de máscara XOR são aplicados em teste sobre os módulos de dados. Cada
+        candidato é pontuado pelas quatro regras de penalidade da ISO — sequências longas da
+        mesma cor, blocos sólidos, padrões parecidos com o localizador e desbalanceamento
+        claro/escuro — e vence a máscara de menor penalidade, para que o símbolo final evite
+        padrões que confundem leitores. A pontuação usa análise de run-length com saída
+        antecipada assim que um teste se prova pior que o melhor atual.</p>
+      </li>
+      <li class="step">
+        <h3>Informações de formato e versão</h3>
+        <p>O nível de correção de erro e a máscara vencedora são codificados com BCH e
+        escritos duas vezes ao redor dos padrões localizadores; da versão 7 em diante, a
+        informação de versão também é embutida com BCH. Os leitores decodificam essas áreas
+        primeiro, e a redundância BCH as protege contra danos.</p>
+      </li>
+      <li class="step">
+        <h3>Renderização</h3>
+        <p>A matriz pronta é renderizada sob demanda: rasterizada em PNG/JPG/BMP com
+        estilização (cores, módulos arredondados, logo central), emitida como SVG escalável
+        construído direto da matriz sem AWT, impressa no terminal como blocos ANSI, ou lida
+        módulo a módulo via <code>isDark(row, col)</code>.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Modo numérico em números</h2>
+    <p class="section-sub">
+      Payloads só de dígitos — boletos, códigos de rastreio, IDs numéricos — são empacotados
+      com 3 dígitos a cada 10 bits em vez de 8 bits por caractere. Símbolos menores
+      significam geração mais rápida e leitura mais fácil. Medido em ECC nível M com seleção
+      automática de versão:
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Dígitos</th><th>Byte mode</th><th>Modo numérico</th><th>Geração</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>47 (boleto)</td><td>V4 &middot; 33&times;33</td><td><strong>V2 &middot; 25&times;25</strong></td><td><strong>1,6&times; mais rápida</strong></td></tr>
+          <tr><td>130</td><td>V8 &middot; 49&times;49</td><td><strong>V4 &middot; 33&times;33</strong></td><td><strong>3,1&times; mais rápida</strong></td></tr>
+          <tr><td>500</td><td>V17 &middot; 85&times;85</td><td><strong>V10 &middot; 57&times;57</strong></td><td><strong>2,1&times; mais rápida</strong></td></tr>
+          <tr><td>3000</td><td>não cabe</td><td><strong>V29 &middot; 133&times;133</strong></td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      Licenciado sob <a href="https://github.com/FineiasAntonio/FastQRGenerator/blob/main/LICENSE">Apache 2.0</a>
+      &middot; feito por <a href="https://github.com/FineiasAntonio">Fineias Antonio</a>
+      &middot; todos os QR codes desta página foram gerados pelo próprio FastQRGenerator.
+    </p>
+  </footer>
+</div>
+
+</body>
+</html>

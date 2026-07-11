@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FastQRGenerator — fast, dependency-free QR codes for Java</title>
 <meta name="description" content="A fast Java library for generating QR codes with zero runtime dependencies. ISO/IEC 18004 from scratch: Reed-Solomon, mask selection, numeric mode, styled PNG/SVG output.">
+<link rel="alternate" hreflang="en" href="https://fineiasantonio.github.io/FastQRGenerator/">
+<link rel="alternate" hreflang="pt-BR" href="https://fineiasantonio.github.io/FastQRGenerator/pt-br/">
 <style>
   :root {
     --bg: #fafafa;
@@ -97,6 +99,34 @@
   .swatch p { font-size: 0.85rem; color: var(--muted); margin-top: 10px; }
   .swatch p code { font-size: 0.8em; }
 
+  /* ---------- language switcher ---------- */
+  .lang {
+    display: flex; justify-content: flex-end; gap: 8px; padding-top: 20px;
+    font-size: 0.82rem; font-weight: 600;
+  }
+  .lang a, .lang span {
+    padding: 3px 12px; border-radius: 999px; border: 1px solid var(--border);
+  }
+  .lang span { color: var(--accent); border-color: var(--accent); }
+  .lang a { color: var(--muted); }
+  .lang a:hover { color: var(--text); text-decoration: none; }
+
+  /* ---------- pipeline steps ---------- */
+  .steps { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: step; }
+  .step {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px 18px 66px; position: relative; counter-increment: step;
+  }
+  .step::before {
+    content: counter(step);
+    position: absolute; left: 18px; top: 19px; width: 30px; height: 30px;
+    border-radius: 999px; background: var(--accent); color: var(--accent-contrast);
+    font-weight: 700; font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step h3 { font-size: 1rem; margin-bottom: 4px; }
+  .step p { font-size: 0.92rem; color: var(--muted); }
+
   /* ---------- table ---------- */
   .table-scroll { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
@@ -116,6 +146,11 @@
 <body>
 
 <div class="wrap">
+  <nav class="lang" aria-label="Language">
+    <span aria-current="true">EN</span>
+    <a href="pt-br/" lang="pt-BR" hreflang="pt-BR">PT-BR</a>
+  </nav>
+
   <header class="hero">
     <div class="hero-text">
       <span class="pill">Java 8+ &middot; zero dependencies</span>
@@ -232,6 +267,76 @@ qr.print();                   // ANSI blocks straight to the terminal</code></pr
         .build();
 
 byte[] png = qr.toImageBytes(ImageExtensions.PNG, 10, style);</code></pre>
+  </section>
+
+  <section>
+    <h2>How a QR code is generated</h2>
+    <p class="section-sub">
+      The library implements the full ISO/IEC 18004 pipeline from scratch. This is what
+      happens between <code>generate("...")</code> and a scannable symbol:
+    </p>
+    <ol class="steps">
+      <li class="step">
+        <h3>Mode detection &amp; bit encoding</h3>
+        <p>The payload is scanned once: digits only selects numeric mode (3 digits packed
+        into 10 bits), anything else selects byte mode (UTF-8). The data segment opens with
+        a 4-bit mode indicator and a character count, followed by the packed payload, a
+        terminator, and alternating <code>0xEC</code>/<code>0x11</code> padding codewords
+        that fill the symbol's data capacity exactly.</p>
+      </li>
+      <li class="step">
+        <h3>Version selection</h3>
+        <p>With the exact bit length known, the smallest of the 40 symbol versions
+        (21&times;21 up to 177&times;177 modules) able to hold it at the chosen
+        error-correction level is selected — unless a version was pinned explicitly.</p>
+      </li>
+      <li class="step">
+        <h3>Reed-Solomon error correction</h3>
+        <p>The data codewords are split into blocks, and each block is divided by a generator
+        polynomial over the Galois field GF(2&#8312;); the remainder of that division becomes the
+        block's error-correction codewords. This redundancy is what lets a dirty, damaged or
+        logo-covered symbol still decode: levels L/M/Q/H can recover roughly 7/15/25/30% of
+        the codewords.</p>
+      </li>
+      <li class="step">
+        <h3>Interleaving</h3>
+        <p>Data and error-correction blocks are woven together codeword by codeword. Physical
+        damage tends to be localized, so spreading each block across the whole symbol means a
+        scratch or stain chips a little from every block instead of destroying one entirely.</p>
+      </li>
+      <li class="step">
+        <h3>Matrix construction</h3>
+        <p>Function patterns are stamped onto the grid: the three finder patterns with their
+        separators, the timing lines, the alignment patterns and the dark module — plus
+        reserved areas for format and version information. The codeword bits then fill the
+        remaining modules following the spec's zig-zag walk, upward and downward in two-module
+        columns from the bottom-right corner. The library computes this placement order once
+        per version and caches it.</p>
+      </li>
+      <li class="step">
+        <h3>Mask selection</h3>
+        <p>Eight XOR mask patterns are applied in trial over the data modules. Each candidate
+        is scored with the four ISO penalty rules — long same-color runs, solid blocks,
+        finder-lookalike sequences and dark/light imbalance — and the lowest-penalty mask
+        wins, so the final symbol avoids patterns that confuse scanners. Scoring uses
+        run-length analysis with an early exit as soon as a trial is provably worse than the
+        current best.</p>
+      </li>
+      <li class="step">
+        <h3>Format &amp; version information</h3>
+        <p>The error-correction level and the winning mask are BCH-encoded and written twice
+        around the finder patterns; from version 7 up, BCH-encoded version information is
+        embedded too. Readers decode these areas first, and the BCH redundancy protects them
+        against damage.</p>
+      </li>
+      <li class="step">
+        <h3>Rendering</h3>
+        <p>The finished matrix is rendered on demand: rasterized to PNG/JPG/BMP with styling
+        (colors, rounded modules, center logo), emitted as a compact scalable SVG built
+        directly from the matrix with no AWT, printed to the terminal as ANSI blocks, or read
+        module by module through <code>isDark(row, col)</code>.</p>
+      </li>
+    </ol>
   </section>
 
   <section>
