@@ -46,7 +46,7 @@ class QRCodeGeneratorTest {
     void fixedVersionRejectsOversizedPayload() {
         QRCodeGenerator generator = new QRCodeGeneratorBuilder()
                 .version(QRCodeVersion.V1)
-                .ECCLevel(ECCLevel.H)
+                .eccLevel(ECCLevel.H)
                 .build();
 
         StringBuilder oversized = new StringBuilder();
@@ -61,7 +61,7 @@ class QRCodeGeneratorTest {
     void generatesMatrixOfExpectedSizeForVersion1() {
         QRCodeGenerator generator = new QRCodeGeneratorBuilder()
                 .version(QRCodeVersion.V1)
-                .ECCLevel(ECCLevel.L)
+                .eccLevel(ECCLevel.L)
                 .build();
 
         QRCode qrCode = generator.generate("HI");

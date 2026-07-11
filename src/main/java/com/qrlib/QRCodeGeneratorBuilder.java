@@ -19,7 +19,7 @@ public class QRCodeGeneratorBuilder {
         return this;
     }
 
-    public QRCodeGeneratorBuilder ECCLevel(ECCLevel eccLevel) {
+    public QRCodeGeneratorBuilder eccLevel(ECCLevel eccLevel) {
         this.eccLevel = eccLevel;
         return this;
     }

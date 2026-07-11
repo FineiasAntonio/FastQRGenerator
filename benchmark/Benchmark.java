@@ -79,7 +79,7 @@ public class Benchmark {
 
         QRCodeGenerator generator = new QRCodeGeneratorBuilder()
                 .version(version)
-                .ECCLevel(ECCLevel.M)
+                .eccLevel(ECCLevel.M)
                 .build();
 
         for (int i = 0; i < WARMUP_ITERATIONS; i++) {

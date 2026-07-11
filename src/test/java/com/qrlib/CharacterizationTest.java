@@ -50,7 +50,7 @@ class CharacterizationTest {
     private static String hashFor(QRCodeVersion version, ECCLevel eccLevel) {
         QRCodeGenerator generator = new QRCodeGeneratorBuilder()
                 .version(version)
-                .ECCLevel(eccLevel)
+                .eccLevel(eccLevel)
                 .build();
         byte[][] matrix = generator.generate(PAYLOAD).getMatrixData().getMatrix();
         return matrixHash(matrix);

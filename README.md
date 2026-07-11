@@ -100,7 +100,7 @@ new QRCodeGeneratorBuilder().size(QRCodeSize.MEDIUM).build();
 ```java
 new QRCodeGeneratorBuilder()
         .version(QRCodeVersion.V5)
-        .ECCLevel(ECCLevel.H) // L, M (default), Q, H
+        .eccLevel(ECCLevel.H) // L, M (default), Q, H
         .build();
 ```
 
@@ -171,7 +171,7 @@ The covered modules are lost to the reader and must be recovered by error
 correction, so pair a center image with a high error-correction level:
 
 ```java
-new QRCodeGeneratorBuilder().ECCLevel(ECCLevel.H).build();
+new QRCodeGeneratorBuilder().eccLevel(ECCLevel.H).build();
 ```
 
 As a rule of thumb: the default ratio (`0.2`) scans reliably at level `M` and
