@@ -28,4 +28,10 @@ public class QRDataEncoder {
         int[] dataCodewords = formatter.format(rawBytes);
         return interleaver.interleave(dataCodewords);
     }
+
+    /** Encodes a payload of ASCII digits in numeric mode. */
+    public int[] encodeNumeric(String digits) {
+        int[] dataCodewords = formatter.formatNumeric(digits);
+        return interleaver.interleave(dataCodewords);
+    }
 }
