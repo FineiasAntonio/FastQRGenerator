@@ -1,6 +1,6 @@
 package com.qrlib.render;
 
-public final class ModuleCorners {
+final class ModuleCorners {
 
     public static final ModuleCorners NONE = new ModuleCorners(false, false, false, false);
 

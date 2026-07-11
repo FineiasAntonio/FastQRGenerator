@@ -9,7 +9,7 @@ import java.awt.geom.Path2D;
  * between connected modules stay square, so a run of modules merges into one smooth
  * shape that is only rounded at its ends.
  */
-public class RoundedModuleShape implements ModuleShape {
+class RoundedModuleShape implements ModuleShape {
 
     private static final double DEFAULT_CORNER_RADIUS_RATIO = 0.5;
 

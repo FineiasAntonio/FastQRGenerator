@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
  * indicator, character-count indicator, the UTF-8 payload, terminator, byte-alignment padding
  * and the alternating 0xEC/0x11 fill codewords, per ISO 18004.
  */
-public class DataCodewordFormatter {
+class DataCodewordFormatter {
 
     private static final int BYTE_MODE_INDICATOR = 0b0100;
     private static final int MODE_INDICATOR_BITS = 4;

@@ -2,7 +2,7 @@ package com.qrlib.encoding;
 
 import java.util.Arrays;
 
-public class GFPolynomial {
+class GFPolynomial {
     private final int[] coefficients;
 
     // Primitive polynomial x^8 + x^4 + x^3 + x^2 + 1 used to generate GF(256) for QR codes (ISO 18004).
