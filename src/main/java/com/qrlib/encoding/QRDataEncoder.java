@@ -22,4 +22,16 @@ public class QRDataEncoder {
         int[] dataCodewords = formatter.format(data);
         return interleaver.interleave(dataCodewords);
     }
+
+    /** Encodes an already-encoded UTF-8 payload, avoiding a second {@code getBytes} pass. */
+    public int[] encode(byte[] rawBytes) {
+        int[] dataCodewords = formatter.format(rawBytes);
+        return interleaver.interleave(dataCodewords);
+    }
+
+    /** Encodes a payload of ASCII digits in numeric mode. */
+    public int[] encodeNumeric(String digits) {
+        int[] dataCodewords = formatter.formatNumeric(digits);
+        return interleaver.interleave(dataCodewords);
+    }
 }

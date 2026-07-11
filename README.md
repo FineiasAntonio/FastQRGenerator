@@ -8,6 +8,8 @@ A fast, dependency-free Java library for generating QR Codes. It implements the
 ISO/IEC 18004 pipeline from scratch — Reed-Solomon error correction, matrix
 construction, mask selection and rendering — with **zero runtime dependencies**.
 
+**Project page:** [fineiasantonio.github.io/FastQRGenerator](https://fineiasantonio.github.io/FastQRGenerator/)
+
 <p align="center">
   <img src="samples/sample_V5.png" alt="Sample QR code" width="220">
 </p>
@@ -17,9 +19,11 @@ construction, mask selection and rendering — with **zero runtime dependencies*
 - **No runtime dependencies** — pure Java on top of the JDK only.
 - **Full version range** — QR versions 1 through 40.
 - **All error-correction levels** — L, M, Q, H.
+- **Numeric mode** — pure digit payloads are auto-detected and packed at ~2.4x
+  byte-mode density, often fitting a smaller symbol.
 - **Automatic mask selection** following the ISO 18004 penalty rules.
 - **Styled rendering** — custom colors, border thickness and rounded modules.
-- **Multiple output formats** — PNG, JPG, JPEG, BMP, plus ANSI terminal printing.
+- **Multiple output formats** — PNG, JPG, JPEG, BMP, SVG, plus ANSI terminal printing.
 
 ## Requirements
 
@@ -60,7 +64,7 @@ QRCodeGenerator generator = new QRCodeGeneratorBuilder().build();
 QRCode qr = generator.generate("https://github.com/FineiasAntonio/FastQRGenerator");
 
 try (FileOutputStream out = new FileOutputStream("qr.png")) {
-    qr.getAsImage(ImageExtensions.PNG).writeTo(out);
+    qr.writeImage(out, ImageExtensions.PNG);
 }
 ```
 
@@ -100,25 +104,29 @@ new QRCodeGeneratorBuilder().size(QRCodeSize.MEDIUM).build();
 ```java
 new QRCodeGeneratorBuilder()
         .version(QRCodeVersion.V5)
-        .ECCLevel(ECCLevel.H) // L, M (default), Q, H
+        .eccLevel(ECCLevel.H) // L, M (default), Q, H
         .build();
 ```
 
 ### Output formats and saving to a file
 
-`getAsImage(...)` returns a `ByteArrayOutputStream`, so you can write it anywhere:
+`writeImage(...)` writes the rendered image to any `OutputStream`; `toImageBytes(...)`
+returns it as a `byte[]`:
 
 ```java
+// write straight to a stream (file, HTTP response, ...)
+try (FileOutputStream out = new FileOutputStream("qr.png")) {
+    qr.writeImage(out, ImageExtensions.PNG);
+}
+
 // default: PNG, module size 10px, default style
-qr.getAsImage();
+byte[] png = qr.toImageBytes();
 
 // pick a format
-qr.getAsImage(ImageExtensions.JPG);
+byte[] jpg = qr.toImageBytes(ImageExtensions.JPG);
 
 // pick a format and module size (pixels per module)
-qr.getAsImage(ImageExtensions.PNG, 8);
-
-byte[] bytes = qr.getAsImage(ImageExtensions.PNG).toByteArray();
+byte[] scaled = qr.toImageBytes(ImageExtensions.PNG, 8);
 ```
 
 ### Styling
@@ -131,7 +139,7 @@ QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
         .cornerRadius(0.4)       // 0 (square) to 0.5 (fully round), as a fraction of the module
         .build();
 
-qr.getAsImage(ImageExtensions.PNG, 10, style);
+qr.toImageBytes(ImageExtensions.PNG, 10, style);
 ```
 
 Notes:
@@ -160,7 +168,7 @@ QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
         .centerImagePadShape(CenterImagePadShape.ROUNDED) // SQUARE (default), ROUNDED or CIRCLE
         .build();
 
-qr.getAsImage(ImageExtensions.PNG, 10, style);
+qr.toImageBytes(ImageExtensions.PNG, 10, style);
 ```
 
 The pad behind the image can be `SQUARE` (default), `ROUNDED` (rounded
@@ -171,17 +179,43 @@ The covered modules are lost to the reader and must be recovered by error
 correction, so pair a center image with a high error-correction level:
 
 ```java
-new QRCodeGeneratorBuilder().ECCLevel(ECCLevel.H).build();
+new QRCodeGeneratorBuilder().eccLevel(ECCLevel.H).build();
 ```
 
 As a rule of thumb: the default ratio (`0.2`) scans reliably at level `M` and
 above, the maximum ratio (`0.3`) requires `Q` or `H`, and level `L` should not
 be combined with a center image at all.
 
+### SVG output
+
+`getAsSVG(...)` renders the symbol as a standalone SVG document string — plain text
+built directly from the matrix, with no `java.awt` rasterization involved, so it also
+works on runtimes without AWT (e.g. Android):
+
+```java
+String svg = qr.getAsSVG(); // default style, 10px per module
+
+// with a custom pixel size and style (same styling options as raster output)
+String styled = qr.getAsSVG(8, style);
+
+Files.write(Paths.get("qr.svg"), svg.getBytes(StandardCharsets.UTF_8));
+```
+
+The `viewBox` is laid out in module units, so the symbol scales losslessly to any
+size — the module size only sets the document's default `width`/`height`. SVG is the
+natural choice for the web: browsers render it directly, files are compact, and it
+stays sharp at every zoom level.
+
+The one exception to the no-AWT guarantee: a style carrying a center image embeds it
+as a base64 PNG data URI, which requires `javax.imageio`.
+
 ### Printing to the terminal
 
 ```java
-qr.print(); // renders the symbol with ANSI background blocks
+qr.print();                     // renders the symbol with ANSI background blocks on System.out
+qr.print(System.err);           // or on any PrintStream
+
+String ansi = qr.getAsTerminalString(); // the same output as a String
 ```
 
 ### Accessing the raw matrix
@@ -189,8 +223,14 @@ qr.print(); // renders the symbol with ANSI background blocks
 If you only need the module data (no AWT), read it directly:
 
 ```java
-int[][] matrix = qr.getMatrixData().getMatrix(); // 1 = dark, 0 = light
+int size = qr.getSize();                          // side length, in modules
+boolean dark = qr.isDark(row, col);               // read a single module
+
+byte[][] matrix = qr.getMatrixData().getMatrix(); // snapshot copy, 1 = dark, 0 = light
 ```
+
+`getMatrixData()` returns a snapshot: modifying it (or the array from `getMatrix()`)
+never affects the generated symbol.
 
 ## Sample output
 
@@ -208,9 +248,10 @@ to version 40.
 
 This library is in **beta**. Notable constraints:
 
-- Data is encoded in **byte mode (UTF-8)**, which accepts any text or binary
-  payload; there is no numeric/alphanumeric/kanji mode optimization, so purely
-  numeric data is not encoded at maximum density.
+- Text is encoded in **byte mode (UTF-8)**, which accepts any payload; pure
+  digit payloads are automatically packed in **numeric mode**. There is no
+  alphanumeric/kanji mode optimization yet, so uppercase-only payloads are not
+  encoded at maximum density.
 - Image rendering depends on `java.awt`, which is unavailable on some runtimes
   (e.g. Android).
 

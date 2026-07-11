@@ -79,7 +79,7 @@ public class Benchmark {
 
         QRCodeGenerator generator = new QRCodeGeneratorBuilder()
                 .version(version)
-                .ECCLevel(ECCLevel.M)
+                .eccLevel(ECCLevel.M)
                 .build();
 
         for (int i = 0; i < WARMUP_ITERATIONS; i++) {
@@ -111,7 +111,7 @@ public class Benchmark {
     }
 
     private static int generate(QRCodeGenerator generator, String payload) {
-        return generator.generate(payload).getMatrixData().getMatrix()[0][0];
+        return generator.generate(payload).isDark(0, 0) ? 1 : 0;
     }
 
     private static String payload(int bytes) {

@@ -3,15 +3,30 @@ package com.qrlib;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.io.UncheckedIOException;
 
 import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageOutputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
 
 import com.qrlib.config.ImageExtensions;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
 import com.qrlib.render.QRCodeImageRenderer;
+import com.qrlib.render.QRCodeSVGRenderer;
 import com.qrlib.render.QRCodeTerminalRenderer;
 
+/**
+ * A generated QR symbol, ready to be rendered as a raster image ({@link #writeImage} /
+ * {@link #toImageBytes}), an SVG document ({@link #getAsSVG}), ANSI terminal text
+ * ({@link #print} / {@link #getAsTerminalString}) or consumed as raw module data
+ * ({@link #isDark(int, int)} / {@link #getMatrixData()}).
+ * <p>
+ * Instances are immutable and safe for concurrent use: {@link #getMatrixData()} returns a
+ * snapshot copy, so the symbol cannot be modified after generation.
+ */
 public class QRCode {
 
     private static final int MODULE_SIZE = 10;
@@ -23,57 +38,138 @@ public class QRCode {
         this.matrixData = matrixData;
     }
 
+    /**
+     * Returns a snapshot copy of the module matrix; modifying it does not affect this symbol.
+     * For reading single modules without copying, use {@link #isDark(int, int)}.
+     */
     public MatrixData getMatrixData() {
-        return matrixData;
+        return new MatrixData(matrixData);
     }
 
-    /** Prints the symbol to {@code System.out} as ANSI background blocks. */
+    /** Side length of the symbol, in modules. */
+    public int getSize() {
+        return matrixData.getSize();
+    }
+
+    public boolean isDark(int row, int col) {
+        return matrixData.isDark(row, col);
+    }
+
+    /** Prints the symbol to {@link System#out} as ANSI background blocks. */
     public void print() {
-        System.out.print(new QRCodeTerminalRenderer().render(matrixData));
+        print(System.out);
     }
 
-    public ByteArrayOutputStream getAsImage() {
-        return getAsImage(ImageExtensions.PNG, MODULE_SIZE, DEFAULT_STYLE);
+    /** Prints the symbol to the given stream as ANSI background blocks. */
+    public void print(PrintStream out) {
+        out.print(getAsTerminalString());
     }
 
-    public ByteArrayOutputStream getAsImage(ImageExtensions extension) {
-        return getAsImage(extension, MODULE_SIZE, DEFAULT_STYLE);
+    /** Returns the symbol as ANSI terminal text, one line per module row. */
+    public String getAsTerminalString() {
+        return new QRCodeTerminalRenderer().render(matrixData);
     }
 
-    public ByteArrayOutputStream getAsImage(ImageExtensions extension, int moduleSize) {
-        return getAsImage(extension, moduleSize, DEFAULT_STYLE);
+    public String getAsSVG() {
+        return getAsSVG(MODULE_SIZE, DEFAULT_STYLE);
     }
 
-    public ByteArrayOutputStream getAsImage(QRCodeStyleDefinitions style) {
-        return getAsImage(ImageExtensions.PNG, MODULE_SIZE, style);
+    public String getAsSVG(int moduleSize) {
+        return getAsSVG(moduleSize, DEFAULT_STYLE);
     }
 
-    public ByteArrayOutputStream getAsImage(ImageExtensions extension, QRCodeStyleDefinitions style) {
-        return getAsImage(extension, MODULE_SIZE, style);
+    public String getAsSVG(QRCodeStyleDefinitions style) {
+        return getAsSVG(MODULE_SIZE, style);
     }
 
     /**
-     * Renders the symbol with a configurable module size in pixels and visual style. The
-     * style's border thickness (in modules) takes the place of the quiet zone.
-     * <p>
-     * Values like 10 are suitable for display; smaller values (e.g. 2) round-trip better with
-     * ZXing's Java {@code Detector} for some version/payload combinations where upscaled bitmaps
-     * can fail detection even though the symbol is valid (same limitation affects ZXing's own
-     * encoder output).
+     * Renders the symbol as a standalone SVG document, built directly from the matrix with no
+     * {@code java.awt} rasterization, so it also works on runtimes without AWT. The
+     * {@code viewBox} is laid out in module units; {@code moduleSize} only sets the document's
+     * default width and height.
      */
-    public ByteArrayOutputStream getAsImage(ImageExtensions extension, int moduleSize, QRCodeStyleDefinitions style) {
+    public String getAsSVG(int moduleSize, QRCodeStyleDefinitions style) {
+        if (moduleSize < 1) {
+            throw new IllegalArgumentException("moduleSize must be >= 1");
+        }
+        return new QRCodeSVGRenderer(style).render(matrixData, moduleSize);
+    }
+
+    public void writeImage(OutputStream out) throws IOException {
+        writeImage(out, ImageExtensions.PNG, MODULE_SIZE, DEFAULT_STYLE);
+    }
+
+    public void writeImage(OutputStream out, ImageExtensions extension) throws IOException {
+        writeImage(out, extension, MODULE_SIZE, DEFAULT_STYLE);
+    }
+
+    public void writeImage(OutputStream out, ImageExtensions extension, int moduleSize) throws IOException {
+        writeImage(out, extension, moduleSize, DEFAULT_STYLE);
+    }
+
+    /**
+     * Renders the symbol and writes the encoded image to the given stream. The stream is
+     * flushed but not closed.
+     *
+     * @param out where the encoded image is written
+     * @param extension the output image format
+     * @param moduleSize pixels per module, at least {@code 1}
+     * @param style visual style applied when rendering
+     * @throws IOException if writing to the stream fails
+     * @throws IllegalStateException if no {@code ImageIO} writer supports the format
+     */
+    public void writeImage(OutputStream out, ImageExtensions extension, int moduleSize, QRCodeStyleDefinitions style)
+            throws IOException {
         if (moduleSize < 1) {
             throw new IllegalArgumentException("moduleSize must be >= 1");
         }
 
         BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, moduleSize);
 
+        try (ImageOutputStream output = new MemoryCacheImageOutputStream(out)) {
+            if (!ImageIO.write(image, extension.getExtension(), output)) {
+                throw new IllegalStateException(
+                        "No ImageIO writer available for format \"" + extension.getExtension() + "\"");
+            }
+        }
+    }
+
+    public byte[] toImageBytes() {
+        return toImageBytes(ImageExtensions.PNG, MODULE_SIZE, DEFAULT_STYLE);
+    }
+
+    public byte[] toImageBytes(ImageExtensions extension) {
+        return toImageBytes(extension, MODULE_SIZE, DEFAULT_STYLE);
+    }
+
+    public byte[] toImageBytes(ImageExtensions extension, int moduleSize) {
+        return toImageBytes(extension, moduleSize, DEFAULT_STYLE);
+    }
+
+    public byte[] toImageBytes(QRCodeStyleDefinitions style) {
+        return toImageBytes(ImageExtensions.PNG, MODULE_SIZE, style);
+    }
+
+    public byte[] toImageBytes(ImageExtensions extension, QRCodeStyleDefinitions style) {
+        return toImageBytes(extension, MODULE_SIZE, style);
+    }
+
+    /**
+     * Renders the symbol and returns the encoded image bytes.
+     *
+     * @param extension the output image format
+     * @param moduleSize pixels per module, at least {@code 1}
+     * @param style visual style applied when rendering
+     * @throws UncheckedIOException if encoding the image fails
+     * @throws IllegalStateException if no {@code ImageIO} writer supports the format
+     */
+    public byte[] toImageBytes(ImageExtensions extension, int moduleSize, QRCodeStyleDefinitions style) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
-            ImageIO.write(image, extension.getExtension(), baos);
+            writeImage(baos, extension, moduleSize, style);
         } catch (IOException e) {
-            throw new RuntimeException("Error generating QR code image", e);
+            throw new UncheckedIOException("Error generating QR code image", e);
         }
-        return baos;
+        return baos.toByteArray();
     }
 }

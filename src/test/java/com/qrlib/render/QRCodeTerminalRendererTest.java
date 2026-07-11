@@ -14,8 +14,8 @@ class QRCodeTerminalRendererTest {
     @Test
     void rendersModulesAsAnsiBlocksInsideTwoModuleQuietZone() {
         MatrixData matrixData = new MatrixData(2);
-        matrixData.getMatrix()[0][0] = 1;
-        matrixData.getMatrix()[1][1] = 1;
+        matrixData.setDark(0, 0, true);
+        matrixData.setDark(1, 1, true);
 
         // 2 modules + a 2-module quiet zone on every side = 6 blocks per line, 6 lines.
         String quietRow = repeat(WHITE, 6) + "\n";

@@ -33,30 +33,65 @@ public class MatrixDataGenerator {
         return matrixData;
     }
 
+    /**
+     * Computes the zig-zag placement order for the version described by {@code baseMatrixData}.
+     * Like the base matrix itself, the result is data-independent, so callers generating many
+     * symbols of the same version should compute it once and pass it to
+     * {@link #generateMatrixData(MatrixData, int[], QRCodeVersion, ECCLevel, int[])}.
+     */
+    public static int[] computePlacementOrder(MatrixData baseMatrixData) {
+        return DataMaskApplier.computePlacementOrder(baseMatrixData);
+    }
+
+    /** Variant of {@link #generateMatrixData(MatrixData, int[], QRCodeVersion, ECCLevel, int[])}
+     * that derives the placement order on the fly, for one-off callers. */
     public static MatrixData generateMatrixData(MatrixData baseMatrixData, QRCodeVersion version, ECCLevel eccLevel,
             int[] inputData) {
+        return generateMatrixData(baseMatrixData, computePlacementOrder(baseMatrixData), version, eccLevel, inputData);
+    }
+
+    public static MatrixData generateMatrixData(MatrixData baseMatrixData, int[] placementOrder,
+            QRCodeVersion version, ECCLevel eccLevel, int[] inputData) {
         int versionValue = version.getValue();
 
-        MatrixData bestMatrixData = null;
+        // A single scratch copy is reused across all mask trials: every module outside the
+        // fixed function patterns is unconditionally rewritten on each trial — the data pass
+        // assigns every unreserved module, and the format/version writers assign every module
+        // of their areas — so no state leaks from one trial to the next. This replaces the
+        // previous one-copy-per-mask approach (8 full matrix allocations per generation),
+        // which dominated allocation pressure under high-throughput use.
+        MatrixData scratch = new MatrixData(baseMatrixData);
+
+        int bestMask = 0;
         int bestPenalty = Integer.MAX_VALUE;
 
         for (int mask = 0; mask < DataMaskApplier.MASK_PATTERN_COUNT; mask++) {
-            MatrixData matrixData = new MatrixData(baseMatrixData);
-            DataMaskApplier.applyDataAndMask(matrixData, inputData, mask);
+            writeMaskedSymbol(scratch, placementOrder, versionValue, eccLevel, inputData, mask);
 
-            FormatInformation.write(matrixData, eccLevel, mask);
-
-            if (versionValue >= VERSION_INFO_MIN_VERSION) {
-                VersionInformation.write(matrixData, versionValue);
-            }
-
-            int penalty = PenaltyCalculator.calculate(matrixData.getMatrix());
+            // Passing the best score so far as cutoff lets the calculator abort a trial as soon
+            // as it is provably worse than the current winner (penalties only accumulate).
+            int penalty = PenaltyCalculator.calculate(scratch.matrix(), bestPenalty);
             if (penalty < bestPenalty) {
                 bestPenalty = penalty;
-                bestMatrixData = matrixData;
+                bestMask = mask;
             }
         }
 
-        return bestMatrixData;
+        // The scratch matrix currently holds the last trial; reapply the winner unless it
+        // already is the last mask.
+        if (bestMask != DataMaskApplier.MASK_PATTERN_COUNT - 1) {
+            writeMaskedSymbol(scratch, placementOrder, versionValue, eccLevel, inputData, bestMask);
+        }
+        return scratch;
+    }
+
+    /** Writes the complete symbol for one mask trial: masked data, format and version information. */
+    private static void writeMaskedSymbol(MatrixData matrixData, int[] placementOrder, int versionValue,
+            ECCLevel eccLevel, int[] inputData, int mask) {
+        DataMaskApplier.applyDataAndMask(matrixData, inputData, mask, placementOrder);
+        FormatInformation.write(matrixData, eccLevel, mask);
+        if (versionValue >= VERSION_INFO_MIN_VERSION) {
+            VersionInformation.write(matrixData, versionValue);
+        }
     }
 }

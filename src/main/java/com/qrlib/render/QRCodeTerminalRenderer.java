@@ -16,7 +16,7 @@ public class QRCodeTerminalRenderer {
 
     /** Returns the symbol as ANSI text, one line per module row, each ending in a newline. */
     public String render(MatrixData matrixData) {
-        int[][] matrix = matrixData.getMatrix();
+        byte[][] matrix = matrixData.getMatrix();
         int size = matrix.length;
 
         StringBuilder out = new StringBuilder();

@@ -7,7 +7,7 @@ import com.qrlib.config.QRCodeCapacity;
  * Reed-Solomon codewords, and interleaves data and EC codewords into the final stream order
  * required by ISO 18004.
  */
-public class CodewordInterleaver {
+class CodewordInterleaver {
 
     private final QRCodeCapacity capacity;
     private final ReedSolomonEncoder reedSolomonEncoder;

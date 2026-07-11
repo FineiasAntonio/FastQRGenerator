@@ -2,11 +2,6 @@ package com.qrlib.matrix;
 
 import com.qrlib.config.QRCodeVersion;
 
-/**
- * Places the fixed function patterns of a QR symbol — finder patterns, separators, timing
- * patterns, alignment patterns and the dark module — and reserves the format/version
- * information areas, per ISO 18004. These modules are independent of the encoded data.
- */
 final class StructuralPatternPlacer {
 
     private StructuralPatternPlacer() {
@@ -57,9 +52,9 @@ final class StructuralPatternPlacer {
     };
 
     static void placeCommonPatterns(MatrixData matrixData, QRCodeVersion version) {
-        int size = matrixData.getMatrix().length;
-        int[][] matrix = matrixData.getMatrix();
-        boolean[][] reserved = matrixData.getReserved();
+        int size = matrixData.matrix().length;
+        byte[][] matrix = matrixData.matrix();
+        boolean[][] reserved = matrixData.reserved();
         int ver = version.getValue();
 
         drawFinderPattern(matrix, reserved, 0, 0);
@@ -85,7 +80,7 @@ final class StructuralPatternPlacer {
 
     // ======================== FINDER PATTERNS ========================
 
-    private static void drawFinderPattern(int[][] matrix, boolean[][] reserved, int row, int col) {
+    private static void drawFinderPattern(byte[][] matrix, boolean[][] reserved, int row, int col) {
         int lastIndex = QrLayout.FINDER_PATTERN_SIZE - 1;
         for (int r = 0; r < QrLayout.FINDER_PATTERN_SIZE; r++) {
             for (int c = 0; c < QrLayout.FINDER_PATTERN_SIZE; c++) {
@@ -100,7 +95,7 @@ final class StructuralPatternPlacer {
         }
     }
 
-    private static void drawSeparators(int[][] matrix, boolean[][] reserved, int size) {
+    private static void drawSeparators(byte[][] matrix, boolean[][] reserved, int size) {
         drawSeparatorFor(matrix, reserved, size, true, true);   // Top-Left finder
         drawSeparatorFor(matrix, reserved, size, true, false);  // Top-Right finder
         drawSeparatorFor(matrix, reserved, size, false, true);  // Bottom-Left finder
@@ -111,7 +106,7 @@ final class StructuralPatternPlacer {
      * position (top/bottom, left/right). The horizontal segment sits on the row adjacent to the
      * finder and the vertical segment on the adjacent column.
      */
-    private static void drawSeparatorFor(int[][] matrix, boolean[][] reserved, int size,
+    private static void drawSeparatorFor(byte[][] matrix, boolean[][] reserved, int size,
             boolean top, boolean left) {
         int separatorRow = top ? QrLayout.FINDER_PATTERN_SIZE : size - QrLayout.FINDER_WITH_SEPARATOR_SIZE;
         int separatorCol = left ? QrLayout.FINDER_PATTERN_SIZE : size - QrLayout.FINDER_WITH_SEPARATOR_SIZE;
@@ -126,7 +121,7 @@ final class StructuralPatternPlacer {
 
     // ======================== TIMING PATTERNS ========================
 
-    private static void drawTimingPattern(int[][] matrix, boolean[][] reserved) {
+    private static void drawTimingPattern(byte[][] matrix, boolean[][] reserved) {
         int size = matrix.length;
         for (int i = QrLayout.FINDER_WITH_SEPARATOR_SIZE; i < size - QrLayout.FINDER_WITH_SEPARATOR_SIZE; i++) {
             if (!reserved[QrLayout.TIMING_PATTERN_LINE][i])
@@ -138,7 +133,7 @@ final class StructuralPatternPlacer {
 
     // ======================== ALIGNMENT PATTERNS ========================
 
-    private static void drawAlignmentPatterns(int[][] matrix, boolean[][] reserved, int version) {
+    private static void drawAlignmentPatterns(byte[][] matrix, boolean[][] reserved, int version) {
         int[] positions = ALIGNMENT_POSITIONS[version - 1];
 
         for (int centerRow : positions) {
@@ -164,7 +159,7 @@ final class StructuralPatternPlacer {
         return false;
     }
 
-    private static void drawSingleAlignmentPattern(int[][] matrix, boolean[][] reserved, int centerRow, int centerCol) {
+    private static void drawSingleAlignmentPattern(byte[][] matrix, boolean[][] reserved, int centerRow, int centerCol) {
         for (int r = -2; r <= 2; r++) {
             for (int c = -2; c <= 2; c++) {
                 int row = centerRow + r;
@@ -182,7 +177,7 @@ final class StructuralPatternPlacer {
 
     // ======================== DARK MODULE ========================
 
-    private static void drawDarkModule(int[][] matrix, boolean[][] reserved, int version) {
+    private static void drawDarkModule(byte[][] matrix, boolean[][] reserved, int version) {
         int row = 4 * version + 9;
         int col = QrLayout.FINDER_WITH_SEPARATOR_SIZE;
         matrix[row][col] = 1;
@@ -191,8 +186,8 @@ final class StructuralPatternPlacer {
 
     // ======================== UTILITIES ========================
 
-    private static void setReserved(int[][] matrix, boolean[][] reserved, int r, int c, int val) {
-        matrix[r][c] = val;
+    private static void setReserved(byte[][] matrix, boolean[][] reserved, int r, int c, int val) {
+        matrix[r][c] = (byte) val;
         reserved[r][c] = true;
     }
 }

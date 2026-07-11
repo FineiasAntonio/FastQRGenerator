@@ -16,7 +16,7 @@ class QRCodeImageRendererTest {
     @Test
     void defaultStylePaintsBlackModulesOnWhiteWithFourModuleBorder() {
         MatrixData matrixData = new MatrixData(3);
-        matrixData.getMatrix()[1][1] = 1;
+        matrixData.setDark(1, 1, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder().build();
         BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 2);
@@ -33,8 +33,8 @@ class QRCodeImageRendererTest {
     @Test
     void customColorsAndBorderThicknessAreApplied() {
         MatrixData matrixData = new MatrixData(2);
-        matrixData.getMatrix()[0][0] = 1;
-        matrixData.getMatrix()[1][1] = 1;
+        matrixData.setDark(0, 0, true);
+        matrixData.setDark(1, 1, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .moduleColor("#FF0000")
@@ -57,7 +57,7 @@ class QRCodeImageRendererTest {
     @Test
     void roundedCornersClipTheModuleCorners() {
         MatrixData matrixData = new MatrixData(1);
-        matrixData.getMatrix()[0][0] = 1;
+        matrixData.setDark(0, 0, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .roundedCorners(true)
@@ -73,8 +73,8 @@ class QRCodeImageRendererTest {
     @Test
     void roundedCornersOnlyAppearAtTheEndsOfConnectedModules() {
         MatrixData matrixData = new MatrixData(2);
-        matrixData.getMatrix()[0][0] = 1;
-        matrixData.getMatrix()[0][1] = 1;
+        matrixData.setDark(0, 0, true);
+        matrixData.setDark(0, 1, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .roundedCorners(true)
@@ -95,7 +95,7 @@ class QRCodeImageRendererTest {
     @Test
     void zeroCornerRadiusFillsTheWholeModule() {
         MatrixData matrixData = new MatrixData(1);
-        matrixData.getMatrix()[0][0] = 1;
+        matrixData.setDark(0, 0, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .cornerRadius(0)
@@ -111,7 +111,7 @@ class QRCodeImageRendererTest {
     @Test
     void smallerCornerRadiusClipsLessOfTheCorner() {
         MatrixData matrixData = new MatrixData(1);
-        matrixData.getMatrix()[0][0] = 1;
+        matrixData.setDark(0, 0, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .cornerRadius(0.2)
@@ -235,7 +235,7 @@ class QRCodeImageRendererTest {
         MatrixData matrixData = new MatrixData(size);
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
-                matrixData.getMatrix()[row][col] = 1;
+                matrixData.setDark(row, col, true);
             }
         }
         return matrixData;
