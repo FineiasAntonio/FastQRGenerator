@@ -60,7 +60,7 @@ QRCodeGenerator generator = new QRCodeGeneratorBuilder().build();
 QRCode qr = generator.generate("https://github.com/FineiasAntonio/FastQRGenerator");
 
 try (FileOutputStream out = new FileOutputStream("qr.png")) {
-    qr.getAsImage(ImageExtensions.PNG).writeTo(out);
+    qr.writeImage(out, ImageExtensions.PNG);
 }
 ```
 
@@ -106,19 +106,23 @@ new QRCodeGeneratorBuilder()
 
 ### Output formats and saving to a file
 
-`getAsImage(...)` returns a `ByteArrayOutputStream`, so you can write it anywhere:
+`writeImage(...)` writes the rendered image to any `OutputStream`; `toImageBytes(...)`
+returns it as a `byte[]`:
 
 ```java
+// write straight to a stream (file, HTTP response, ...)
+try (FileOutputStream out = new FileOutputStream("qr.png")) {
+    qr.writeImage(out, ImageExtensions.PNG);
+}
+
 // default: PNG, module size 10px, default style
-qr.getAsImage();
+byte[] png = qr.toImageBytes();
 
 // pick a format
-qr.getAsImage(ImageExtensions.JPG);
+byte[] jpg = qr.toImageBytes(ImageExtensions.JPG);
 
 // pick a format and module size (pixels per module)
-qr.getAsImage(ImageExtensions.PNG, 8);
-
-byte[] bytes = qr.getAsImage(ImageExtensions.PNG).toByteArray();
+byte[] scaled = qr.toImageBytes(ImageExtensions.PNG, 8);
 ```
 
 ### Styling
@@ -131,7 +135,7 @@ QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
         .cornerRadius(0.4)       // 0 (square) to 0.5 (fully round), as a fraction of the module
         .build();
 
-qr.getAsImage(ImageExtensions.PNG, 10, style);
+qr.toImageBytes(ImageExtensions.PNG, 10, style);
 ```
 
 Notes:
@@ -160,7 +164,7 @@ QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
         .centerImagePadShape(CenterImagePadShape.ROUNDED) // SQUARE (default), ROUNDED or CIRCLE
         .build();
 
-qr.getAsImage(ImageExtensions.PNG, 10, style);
+qr.toImageBytes(ImageExtensions.PNG, 10, style);
 ```
 
 The pad behind the image can be `SQUARE` (default), `ROUNDED` (rounded

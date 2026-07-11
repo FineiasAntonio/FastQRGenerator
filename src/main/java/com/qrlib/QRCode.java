@@ -3,6 +3,7 @@ package com.qrlib;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 
 import javax.imageio.ImageIO;
@@ -54,42 +55,61 @@ public class QRCode {
         return new QRCodeSVGRenderer(style).render(matrixData, moduleSize);
     }
 
-    public ByteArrayOutputStream getAsImage() {
-        return getAsImage(ImageExtensions.PNG, MODULE_SIZE, DEFAULT_STYLE);
+    public void writeImage(OutputStream out) throws IOException {
+        writeImage(out, ImageExtensions.PNG, MODULE_SIZE, DEFAULT_STYLE);
     }
 
-    public ByteArrayOutputStream getAsImage(ImageExtensions extension) {
-        return getAsImage(extension, MODULE_SIZE, DEFAULT_STYLE);
+    public void writeImage(OutputStream out, ImageExtensions extension) throws IOException {
+        writeImage(out, extension, MODULE_SIZE, DEFAULT_STYLE);
     }
 
-    public ByteArrayOutputStream getAsImage(ImageExtensions extension, int moduleSize) {
-        return getAsImage(extension, moduleSize, DEFAULT_STYLE);
+    public void writeImage(OutputStream out, ImageExtensions extension, int moduleSize) throws IOException {
+        writeImage(out, extension, moduleSize, DEFAULT_STYLE);
     }
 
-    public ByteArrayOutputStream getAsImage(QRCodeStyleDefinitions style) {
-        return getAsImage(ImageExtensions.PNG, MODULE_SIZE, style);
-    }
-
-    public ByteArrayOutputStream getAsImage(ImageExtensions extension, QRCodeStyleDefinitions style) {
-        return getAsImage(extension, MODULE_SIZE, style);
-    }
-
-    public ByteArrayOutputStream getAsImage(ImageExtensions extension, int moduleSize, QRCodeStyleDefinitions style) {
+    public void writeImage(OutputStream out, ImageExtensions extension, int moduleSize, QRCodeStyleDefinitions style)
+            throws IOException {
         if (moduleSize < 1) {
             throw new IllegalArgumentException("moduleSize must be >= 1");
         }
 
         BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, moduleSize);
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (ImageOutputStream output = new MemoryCacheImageOutputStream(baos)) {
+        try (ImageOutputStream output = new MemoryCacheImageOutputStream(out)) {
             if (!ImageIO.write(image, extension.getExtension(), output)) {
                 throw new IllegalStateException(
                         "No ImageIO writer available for format \"" + extension.getExtension() + "\"");
             }
+        }
+    }
+
+    public byte[] toImageBytes() {
+        return toImageBytes(ImageExtensions.PNG, MODULE_SIZE, DEFAULT_STYLE);
+    }
+
+    public byte[] toImageBytes(ImageExtensions extension) {
+        return toImageBytes(extension, MODULE_SIZE, DEFAULT_STYLE);
+    }
+
+    public byte[] toImageBytes(ImageExtensions extension, int moduleSize) {
+        return toImageBytes(extension, moduleSize, DEFAULT_STYLE);
+    }
+
+    public byte[] toImageBytes(QRCodeStyleDefinitions style) {
+        return toImageBytes(ImageExtensions.PNG, MODULE_SIZE, style);
+    }
+
+    public byte[] toImageBytes(ImageExtensions extension, QRCodeStyleDefinitions style) {
+        return toImageBytes(extension, MODULE_SIZE, style);
+    }
+
+    public byte[] toImageBytes(ImageExtensions extension, int moduleSize, QRCodeStyleDefinitions style) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            writeImage(baos, extension, moduleSize, style);
         } catch (IOException e) {
             throw new UncheckedIOException("Error generating QR code image", e);
         }
-        return baos;
+        return baos.toByteArray();
     }
 }

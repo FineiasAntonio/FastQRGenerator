@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -76,9 +75,9 @@ class QRCodeGeneratorTest {
                 .build();
 
         QRCode qrCode = generator.generate("HI");
-        ByteArrayOutputStream out = qrCode.getAsImage(ImageExtensions.PNG, 2);
+        byte[] out = qrCode.toImageBytes(ImageExtensions.PNG, 2);
 
-        BufferedImage image = ImageIO.read(new ByteArrayInputStream(out.toByteArray()));
+        BufferedImage image = ImageIO.read(new ByteArrayInputStream(out));
         int expectedSize = (21 + 4 * 2) * 2; // matrix + default 4-module border, module size 2
         assertEquals(expectedSize, image.getWidth());
         assertEquals(expectedSize, image.getHeight());
@@ -92,9 +91,9 @@ class QRCodeGeneratorTest {
 
         QRCode qrCode = generator.generate("HI");
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder().borderThickness(2).build();
-        ByteArrayOutputStream out = qrCode.getAsImage(ImageExtensions.PNG, 3, style);
+        byte[] out = qrCode.toImageBytes(ImageExtensions.PNG, 3, style);
 
-        BufferedImage image = ImageIO.read(new ByteArrayInputStream(out.toByteArray()));
+        BufferedImage image = ImageIO.read(new ByteArrayInputStream(out));
         int expectedSize = (21 + 2 * 2) * 3; // matrix + custom 2-module border, module size 3
         assertEquals(expectedSize, image.getWidth());
     }
