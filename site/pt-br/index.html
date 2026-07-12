@@ -71,7 +71,6 @@
     border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.08);
   }
   .hero-qr img { display: block; width: 220px; height: 220px; }
-  .hero-qr figcaption { text-align: center; font-size: 0.75rem; color: #52525b; padding-bottom: 6px; }
 
   .pill {
     display: inline-block; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em;
@@ -123,28 +122,47 @@
   .lang a { color: var(--muted); }
   .lang a:hover { color: var(--text); text-decoration: none; }
 
-  /* ---------- pipeline steps ---------- */
-  .steps { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: step; }
-  .step {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-    padding: 18px 20px 18px 66px; position: relative; counter-increment: step;
+  /* ---------- pipeline carousel ---------- */
+  .carousel { position: relative; }
+  .carousel-track {
+    display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory;
+    scroll-behavior: smooth; padding-bottom: 4px; margin: 0 -4px; scrollbar-width: none;
   }
-  .step::before {
-    content: counter(step);
-    position: absolute; left: 18px; top: 19px; width: 30px; height: 30px;
-    border-radius: 999px; background: var(--accent); color: var(--accent-contrast);
-    font-weight: 700; font-size: 0.9rem;
-    display: flex; align-items: center; justify-content: center;
+  .carousel-track::-webkit-scrollbar { display: none; }
+  .carousel-track:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .carousel-slide {
+    flex: 0 0 100%; scroll-snap-align: start; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px 20px;
+    position: relative; min-height: 250px;
   }
-  .step h3 { font-size: 1rem; margin-bottom: 4px; }
-  .step p { font-size: 0.92rem; color: var(--muted); }
-
-  /* ---------- table ---------- */
-  .table-scroll { overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
-  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
-  td strong { color: var(--accent); }
+  .carousel-slide .slide-index {
+    position: absolute; top: 20px; right: 22px; font-size: 0.78rem; font-weight: 700;
+    color: var(--accent); letter-spacing: 0.02em;
+  }
+  .carousel-slide h3 { font-size: 1.08rem; margin: 0 74px 10px 0; }
+  .carousel-slide p { font-size: 0.92rem; color: var(--muted); }
+  .carousel-slide .tech-note {
+    margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border);
+    font-size: 0.85rem; color: var(--muted);
+  }
+  .carousel-slide .tech-note strong { color: var(--text); }
+  .carousel-controls { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 18px; }
+  .carousel-btn {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 999px;
+    width: 36px; height: 36px; font-size: 1.15rem; line-height: 1; cursor: pointer;
+    color: var(--text); display: flex; align-items: center; justify-content: center;
+  }
+  .carousel-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .carousel-btn:disabled { opacity: 0.35; cursor: default; }
+  .carousel-dots { display: flex; align-items: center; gap: 8px; }
+  .carousel-dots .dot {
+    width: 8px; height: 8px; padding: 0; border: none; border-radius: 999px;
+    background: var(--border); cursor: pointer;
+  }
+  .carousel-dots .dot[aria-current="true"] { background: var(--accent); width: 22px; }
+  @media (prefers-reduced-motion: reduce) {
+    .carousel-track { scroll-behavior: auto; }
+  }
 
   footer { border-top: 1px solid var(--border); padding: 32px 0 48px; color: var(--muted); font-size: 0.9rem; }
 
@@ -167,7 +185,7 @@
 
   <header class="hero">
     <div class="hero-text">
-      <span class="pill">Java 8+ &middot; zero dependências</span>
+      <span class="pill">Java 8+</span>
       <h1 translate="no">FastQRGenerator</h1>
       <p class="tagline">
         Uma biblioteca Java rápida para gerar QR codes. O pipeline completo da
@@ -181,7 +199,6 @@
     </div>
     <figure class="hero-qr">
       <img src="../hero.svg" alt="QR code apontando para o repositório do FastQRGenerator, gerado pela própria biblioteca" width="220" height="220" fetchpriority="high">
-      <figcaption>gerado por esta biblioteca — escaneie</figcaption>
     </figure>
   </header>
 
@@ -291,92 +308,131 @@ byte[] png = qr.toImageBytes(ImageExtensions.PNG, 10, style);</code></pre>
       A biblioteca implementa do zero o pipeline completo da ISO/IEC 18004. Isto é o que
       acontece entre <code>generate("...")</code> e um símbolo escaneável:
     </p>
-    <ol class="steps">
-      <li class="step">
-        <h3>Detecção de modo e codificação em bits</h3>
-        <p>O payload é varrido uma vez: só dígitos seleciona o modo numérico (3 dígitos
-        empacotados em 10 bits); qualquer outra coisa seleciona o byte mode (UTF-8). O
-        segmento de dados abre com um indicador de modo de 4 bits e um contador de
-        caracteres, seguidos do payload empacotado, de um terminador e dos codewords de
-        preenchimento alternados <code>0xEC</code>/<code>0x11</code> que completam
-        exatamente a capacidade de dados do símbolo.</p>
-      </li>
-      <li class="step">
-        <h3>Seleção de versão</h3>
-        <p>Com o tamanho exato em bits conhecido, é selecionada a menor das 40 versões de
-        símbolo (de 21&times;21 até 177&times;177 módulos) capaz de comportá-lo no nível de
-        correção de erro escolhido — a menos que uma versão tenha sido fixada explicitamente.</p>
-      </li>
-      <li class="step">
-        <h3>Correção de erros Reed-Solomon</h3>
-        <p>Os codewords de dados são divididos em blocos, e cada bloco é dividido por um
-        polinômio gerador sobre o corpo de Galois GF(2&#8312;); o resto dessa divisão vira os
-        codewords de correção de erro do bloco. É essa redundância que permite que um símbolo
-        sujo, danificado ou coberto por um logo ainda seja decodificado: os níveis L/M/Q/H
-        recuperam cerca de 7/15/25/30% dos codewords.</p>
-      </li>
-      <li class="step">
-        <h3>Intercalação</h3>
-        <p>Os blocos de dados e de correção são entrelaçados codeword a codeword. Danos
-        físicos tendem a ser localizados, então espalhar cada bloco pelo símbolo inteiro faz
-        com que um risco ou mancha tire um pouco de cada bloco em vez de destruir um por
-        completo.</p>
-      </li>
-      <li class="step">
-        <h3>Construção da matriz</h3>
-        <p>Os padrões de função são estampados na grade: os três padrões localizadores com
-        seus separadores, as linhas de timing, os padrões de alinhamento e o módulo escuro —
-        além das áreas reservadas para as informações de formato e versão. Os bits dos
-        codewords então preenchem os módulos restantes seguindo o zigue-zague da spec, subindo
-        e descendo em colunas de dois módulos a partir do canto inferior direito. A biblioteca
-        computa essa ordem de posicionamento uma única vez por versão e a mantém em cache.</p>
-      </li>
-      <li class="step">
-        <h3>Seleção de máscara</h3>
-        <p>Oito padrões de máscara XOR são aplicados em teste sobre os módulos de dados. Cada
-        candidato é pontuado pelas quatro regras de penalidade da ISO — sequências longas da
-        mesma cor, blocos sólidos, padrões parecidos com o localizador e desbalanceamento
-        claro/escuro — e vence a máscara de menor penalidade, para que o símbolo final evite
-        padrões que confundem leitores. A pontuação usa análise de run-length com saída
-        antecipada assim que um teste se prova pior que o melhor atual.</p>
-      </li>
-      <li class="step">
-        <h3>Informações de formato e versão</h3>
-        <p>O nível de correção de erro e a máscara vencedora são codificados com BCH e
-        escritos duas vezes ao redor dos padrões localizadores; da versão 7 em diante, a
-        informação de versão também é embutida com BCH. Os leitores decodificam essas áreas
-        primeiro, e a redundância BCH as protege contra danos.</p>
-      </li>
-      <li class="step">
-        <h3>Renderização</h3>
-        <p>A matriz pronta é renderizada sob demanda: rasterizada em PNG/JPG/BMP com
-        estilização (cores, módulos arredondados, logo central), emitida como SVG escalável
-        construído direto da matriz sem AWT, impressa no terminal como blocos ANSI, ou lida
-        módulo a módulo via <code>isDark(row, col)</code>.</p>
-      </li>
-    </ol>
-  </section>
-
-  <section>
-    <h2>Modo numérico em números</h2>
-    <p class="section-sub">
-      Payloads só de dígitos — boletos, códigos de rastreio, IDs numéricos — são empacotados
-      com 3 dígitos a cada 10 bits em vez de 8 bits por caractere. Símbolos menores
-      significam geração mais rápida e leitura mais fácil. Medido em ECC nível M com seleção
-      automática de versão:
-    </p>
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr><th>Dígitos</th><th>Byte mode</th><th>Modo numérico</th><th>Geração</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>47 (boleto)</td><td>V4 &middot; 33&times;33</td><td><strong>V2 &middot; 25&times;25</strong></td><td><strong>1,6&times; mais rápida</strong></td></tr>
-          <tr><td>130</td><td>V8 &middot; 49&times;49</td><td><strong>V4 &middot; 33&times;33</strong></td><td><strong>3,1&times; mais rápida</strong></td></tr>
-          <tr><td>500</td><td>V17 &middot; 85&times;85</td><td><strong>V10 &middot; 57&times;57</strong></td><td><strong>2,1&times; mais rápida</strong></td></tr>
-          <tr><td>3000</td><td>não cabe</td><td><strong>V29 &middot; 133&times;133</strong></td><td>—</td></tr>
-        </tbody>
-      </table>
+    <div class="carousel" data-carousel>
+      <div class="carousel-track" tabindex="0" role="group" aria-label="Pipeline de geração, 8 etapas, use as setas do teclado ou deslize">
+        <article class="carousel-slide">
+          <span class="slide-index">1 / 8</span>
+          <h3>Detecção de modo e codificação em bits</h3>
+          <p>O payload é varrido uma vez: só dígitos seleciona o modo numérico (3 dígitos
+          empacotados em 10 bits); qualquer outra coisa seleciona o byte mode (UTF-8). O
+          segmento de dados abre com um indicador de modo de 4 bits e um contador de
+          caracteres, seguidos do payload empacotado, de um terminador e dos codewords de
+          preenchimento alternados <code>0xEC</code>/<code>0x11</code> que completam
+          exatamente a capacidade de dados do símbolo.</p>
+          <p class="tech-note"><strong>Por baixo dos panos:</strong> os indicadores de modo
+          são <code>0b0001</code> (numérico) e <code>0b0100</code> (byte) — os dois modos da
+          ISO 18004 implementados pela biblioteca. O campo de contagem de caracteres varia por
+          faixa de versão: 10/12/14 bits para segmentos numéricos nas versões
+          1&ndash;9/10&ndash;26/27&ndash;40, e 8/16 bits para segmentos byte nas versões
+          1&ndash;9/10&ndash;40.</p>
+        </article>
+        <article class="carousel-slide">
+          <span class="slide-index">2 / 8</span>
+          <h3>Seleção de versão</h3>
+          <p>Com o tamanho exato em bits conhecido, é selecionada a menor das 40 versões de
+          símbolo (de 21&times;21 até 177&times;177 módulos) capaz de comportá-lo no nível de
+          correção de erro escolhido — a menos que uma versão tenha sido fixada explicitamente.</p>
+          <p class="tech-note"><strong>Por baixo dos panos:</strong> o número de módulos segue
+          <code>tamanho = 21 + 4 &times; (versão &minus; 1)</code>, então a versão 1 é uma
+          grade 21&times;21 e a versão 40 chega a 21 + 4&times;39 = 177&times;177.</p>
+        </article>
+        <article class="carousel-slide">
+          <span class="slide-index">3 / 8</span>
+          <h3>Correção de erros Reed-Solomon</h3>
+          <p>Os codewords de dados são divididos em blocos, e cada bloco é dividido por um
+          polinômio gerador sobre o corpo de Galois GF(2&#8312;); o resto dessa divisão vira os
+          codewords de correção de erro do bloco. É essa redundância que permite que um símbolo
+          sujo, danificado ou coberto por um logo ainda seja decodificado: os níveis L/M/Q/H
+          recuperam cerca de 7/15/25/30% dos codewords.</p>
+          <p class="tech-note"><strong>Por baixo dos panos:</strong> o GF(256) é construído a
+          partir do polinômio primitivo <code>x&#8312;+x&#8308;+x&#179;+x&#178;+1</code>
+          (<code>0x11D</code>); o polinômio gerador para um bloco de n codewords é
+          <code>(x&minus;&alpha;&#8304;)(x&minus;&alpha;&#185;)&hellip;(x&minus;&alpha;<sup>n&minus;1</sup>)</code>.
+          Dividir o polinômio de dados por ele via resto polinomial sobre o corpo de Galois
+          produz os codewords de correção diretamente.</p>
+        </article>
+        <article class="carousel-slide">
+          <span class="slide-index">4 / 8</span>
+          <h3>Intercalação</h3>
+          <p>Os blocos de dados e de correção são entrelaçados codeword a codeword. Danos
+          físicos tendem a ser localizados, então espalhar cada bloco pelo símbolo inteiro faz
+          com que um risco ou mancha tire um pouco de cada bloco em vez de destruir um por
+          completo.</p>
+          <p class="tech-note"><strong>Por baixo dos panos:</strong> um par versão/ECC pode
+          dividir os dados em até dois grupos de blocos de tamanhos diferentes — a versão 5 no
+          nível Q, por exemplo, tem 2 blocos de 15 codewords de dados mais 2 blocos de 16, cada
+          um carregando 18 codewords de correção. A intercalação lê o codeword 0 de cada bloco,
+          depois o codeword 1 de cada bloco, e assim por diante, esgotando primeiro os blocos
+          menores.</p>
+        </article>
+        <article class="carousel-slide">
+          <span class="slide-index">5 / 8</span>
+          <h3>Construção da matriz</h3>
+          <p>Os padrões de função são estampados na grade: os três padrões localizadores com
+          seus separadores, as linhas de timing, os padrões de alinhamento e o módulo escuro —
+          além das áreas reservadas para as informações de formato e versão. Os bits dos
+          codewords então preenchem os módulos restantes seguindo o zigue-zague da spec, subindo
+          e descendo em colunas de dois módulos a partir do canto inferior direito. A biblioteca
+          computa essa ordem de posicionamento uma única vez por versão e a mantém em cache.</p>
+          <p class="tech-note"><strong>Por baixo dos panos:</strong> os centros dos padrões de
+          alinhamento vêm de uma tabela específica por versão (Anexo E da ISO; a versão 1 não
+          tem nenhum); o módulo sempre escuro fica na posição fixa
+          <code>linha = 4&times;versão + 9, coluna = 8</code>.</p>
+        </article>
+        <article class="carousel-slide">
+          <span class="slide-index">6 / 8</span>
+          <h3>Seleção de máscara</h3>
+          <p>Oito padrões de máscara XOR são aplicados em teste sobre os módulos de dados. Cada
+          candidato é pontuado pelas quatro regras de penalidade da ISO — sequências longas da
+          mesma cor, blocos sólidos, padrões parecidos com o localizador e desbalanceamento
+          claro/escuro — e vence a máscara de menor penalidade, para que o símbolo final evite
+          padrões que confundem leitores. A pontuação usa análise de run-length com saída
+          antecipada assim que um teste se prova pior que o melhor atual.</p>
+          <p class="tech-note"><strong>Por baixo dos panos:</strong> os pesos de penalidade
+          seguem a spec à risca &mdash; N1 soma 3 pontos por sequência de &ge;5 módulos da
+          mesma cor (+1 por módulo extra), N2 soma 3 por bloco 2&times;2 da mesma cor, N3 soma
+          40 por sequência parecida com localizador (padrão 1:1:3:1:1), e N4 soma 10 por cada
+          5% que a proporção de módulos escuros se afasta da meta de 50%.</p>
+        </article>
+        <article class="carousel-slide">
+          <span class="slide-index">7 / 8</span>
+          <h3>Informações de formato e versão</h3>
+          <p>O nível de correção de erro e a máscara vencedora são codificados com BCH e
+          escritos duas vezes ao redor dos padrões localizadores; da versão 7 em diante, a
+          informação de versão também é embutida com BCH. Os leitores decodificam essas áreas
+          primeiro, e a redundância BCH as protege contra danos.</p>
+          <p class="tech-note"><strong>Por baixo dos panos:</strong> a informação de formato é
+          um código BCH de 15 bits (gerador <code>0x537</code>) combinado via XOR com a máscara
+          fixa <code>0x5412</code> antes de ser escrita duas vezes; a informação de versão (da
+          versão 7 em diante) é um código BCH de 18 bits com gerador <code>0x1F25</code>.</p>
+        </article>
+        <article class="carousel-slide">
+          <span class="slide-index">8 / 8</span>
+          <h3>Renderização</h3>
+          <p>A matriz pronta é renderizada sob demanda: rasterizada em PNG/JPG/BMP com
+          estilização (cores, módulos arredondados, logo central), emitida como SVG escalável
+          construído direto da matriz sem AWT, impressa no terminal como blocos ANSI, ou lida
+          módulo a módulo via <code>isDark(row, col)</code>.</p>
+          <p class="tech-note"><strong>Por baixo dos panos:</strong> um <code>QRCode</code> é
+          imutável — a matriz de módulos é computada uma única vez, e cada renderizador
+          trabalha sobre os mesmos dados em cache, então gerar o mesmo símbolo em cinco formatos
+          custa um pipeline completo mais cinco rasterizações baratas.</p>
+        </article>
+      </div>
+      <div class="carousel-controls">
+        <button type="button" class="carousel-btn" data-prev aria-label="Etapa anterior">&lsaquo;</button>
+        <div class="carousel-dots" role="tablist" aria-label="Etapas do pipeline">
+          <button type="button" class="dot" aria-label="Etapa 1" aria-current="true"></button>
+          <button type="button" class="dot" aria-label="Etapa 2"></button>
+          <button type="button" class="dot" aria-label="Etapa 3"></button>
+          <button type="button" class="dot" aria-label="Etapa 4"></button>
+          <button type="button" class="dot" aria-label="Etapa 5"></button>
+          <button type="button" class="dot" aria-label="Etapa 6"></button>
+          <button type="button" class="dot" aria-label="Etapa 7"></button>
+          <button type="button" class="dot" aria-label="Etapa 8"></button>
+        </div>
+        <button type="button" class="carousel-btn" data-next aria-label="Próxima etapa">&rsaquo;</button>
+      </div>
     </div>
   </section>
 
@@ -390,6 +446,48 @@ byte[] png = qr.toImageBytes(ImageExtensions.PNG, 10, style);</code></pre>
     </p>
   </footer>
 </div>
+
+<script>
+(function () {
+  document.querySelectorAll('[data-carousel]').forEach(function (root) {
+    var track = root.querySelector('.carousel-track');
+    var slides = Array.prototype.slice.call(track.children);
+    var prevBtn = root.querySelector('[data-prev]');
+    var nextBtn = root.querySelector('[data-next]');
+    var dots = Array.prototype.slice.call(root.querySelectorAll('.dot'));
+
+    function setActive(index) {
+      dots.forEach(function (dot, i) { dot.setAttribute('aria-current', i === index ? 'true' : 'false'); });
+      prevBtn.disabled = index === 0;
+      nextBtn.disabled = index === slides.length - 1;
+    }
+
+    function currentIndex() {
+      var i = dots.findIndex(function (dot) { return dot.getAttribute('aria-current') === 'true'; });
+      return i === -1 ? 0 : i;
+    }
+
+    function goTo(index) {
+      slides[index].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+    }
+
+    dots.forEach(function (dot, i) { dot.addEventListener('click', function () { goTo(i); }); });
+    prevBtn.addEventListener('click', function () { goTo(Math.max(0, currentIndex() - 1)); });
+    nextBtn.addEventListener('click', function () { goTo(Math.min(slides.length - 1, currentIndex() + 1)); });
+
+    if ('IntersectionObserver' in window) {
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) setActive(slides.indexOf(entry.target));
+        });
+      }, { root: track, threshold: 0.6 });
+      slides.forEach(function (slide) { observer.observe(slide); });
+    }
+
+    setActive(0);
+  });
+})();
+</script>
 
 </body>
 </html>
