@@ -42,3 +42,6 @@ build/
 qrcode_*.png
 
 docs/
+### Agent skills (local tooling) ###
+.agents/
+skills-lock.json
