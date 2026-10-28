@@ -1,11 +1,10 @@
 package com.qrlib;
 
 import com.qrlib.config.ECCLevel;
-import com.qrlib.config.QRCodeSize;
 import com.qrlib.config.QRCodeVersion;
 
 /**
- * Configures and creates {@link QRCodeGenerator} instances. When no version (or size preset)
+ * Configures and creates {@link QRCodeGenerator} instances. When no version
  * is set, the smallest version that fits each payload is selected automatically; the
  * error-correction level defaults to {@link ECCLevel#M}.
  * <p>
@@ -16,12 +15,6 @@ public class QRCodeGeneratorBuilder {
 
     private ECCLevel eccLevel;
     private QRCodeVersion version;
-
-    /** Pins the symbol version through a named {@link QRCodeSize} preset. */
-    public QRCodeGeneratorBuilder size(QRCodeSize size) {
-        this.version = size.getVersion();
-        return this;
-    }
 
     /**
      * Pins an explicit symbol version ({@code V1}-{@code V40}). Payloads that do not fit the

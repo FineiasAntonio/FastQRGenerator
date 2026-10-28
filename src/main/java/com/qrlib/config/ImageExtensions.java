@@ -3,7 +3,6 @@ package com.qrlib.config;
 public enum ImageExtensions {
     PNG("png"),
     JPEG("jpeg"),
-    JPG("jpg"),
     BMP("bmp");
 
     private final String extension;
