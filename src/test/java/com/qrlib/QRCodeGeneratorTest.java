@@ -104,7 +104,7 @@ class QRCodeGeneratorTest {
                 .build();
 
         QRCode qrCode = generator.generate("HI");
-        byte[] out = qrCode.toImageBytes(ImageExtensions.PNG, 2);
+        byte[] out = qrCode.toImageBytes(ImageExtensions.PNG, 2, QRCodeStyleDefinitions.builder().build());
 
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(out));
         int expectedSize = (21 + 4 * 2) * 2; // matrix + default 4-module border, module size 2
@@ -125,5 +125,18 @@ class QRCodeGeneratorTest {
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(out));
         int expectedSize = (21 + 2 * 2) * 3; // matrix + custom 2-module border, module size 3
         assertEquals(expectedSize, image.getWidth());
+    }
+
+    @org.junit.jupiter.api.Test
+    void centerImageLargerThanTheErrorCorrectionCanRecoverIsRejected() {
+        QRCode qr = new QRCodeGeneratorBuilder().eccLevel(com.qrlib.config.ECCLevel.L).build().generate("hello");
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .centerImage(new java.awt.image.BufferedImage(4, 4, java.awt.image.BufferedImage.TYPE_INT_ARGB))
+                .centerImageRatio(0.3)
+                .build();
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> qr.getAsSVG(10, style));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> qr.toImageBytes(com.qrlib.config.ImageExtensions.PNG, 10, style));
     }
 }

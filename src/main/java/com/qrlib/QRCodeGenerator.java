@@ -46,6 +46,9 @@ public class QRCodeGenerator {
      *         version at the configured error-correction level
      */
     public QRCode generate(String data) {
+        if (data == null) {
+            throw new IllegalArgumentException("data cannot be null");
+        }
         EncodingMode mode = EncodingMode.detect(data);
         byte[] payload = mode == EncodingMode.BYTE ? data.getBytes(StandardCharsets.UTF_8) : null;
         int characterCount = mode == EncodingMode.BYTE ? payload.length : data.length();
@@ -57,7 +60,7 @@ public class QRCodeGenerator {
                 : pipeline.encoder.encode(payload);
         MatrixData matrixData = MatrixDataGenerator.generateMatrixData(pipeline.baseMatrix,
                 pipeline.placementOrder, version, eccLevel, encodedData);
-        return new QRCode(matrixData);
+        return new QRCode(matrixData, eccLevel);
     }
 
     private QRCodeVersion resolveVersion(int characterCount, EncodingMode mode) {

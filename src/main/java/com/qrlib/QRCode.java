@@ -11,6 +11,7 @@ import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 
+import com.qrlib.config.ECCLevel;
 import com.qrlib.config.ImageExtensions;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
@@ -33,9 +34,11 @@ public class QRCode {
     private static final QRCodeStyleDefinitions DEFAULT_STYLE = QRCodeStyleDefinitions.builder().build();
 
     private final MatrixData matrixData;
+    private final ECCLevel eccLevel;
 
-    public QRCode(MatrixData matrixData) {
+    QRCode(MatrixData matrixData, ECCLevel eccLevel) {
         this.matrixData = matrixData;
+        this.eccLevel = eccLevel;
     }
 
     /**
@@ -74,37 +77,22 @@ public class QRCode {
         return getAsSVG(MODULE_SIZE, DEFAULT_STYLE);
     }
 
-    public String getAsSVG(int moduleSize) {
-        return getAsSVG(moduleSize, DEFAULT_STYLE);
-    }
-
     public String getAsSVG(QRCodeStyleDefinitions style) {
         return getAsSVG(MODULE_SIZE, style);
     }
 
     /**
-     * Renders the symbol as a standalone SVG document, built directly from the matrix with no
-     * {@code java.awt} rasterization, so it also works on runtimes without AWT. The
-     * {@code viewBox} is laid out in module units; {@code moduleSize} only sets the document's
-     * default width and height.
+     * Renders the symbol as a standalone SVG document, built directly from the matrix as vector
+     * paths with no rasterization. The {@code viewBox} is laid out in module units;
+     * {@code moduleSize} only sets the document's default width and height.
      */
     public String getAsSVG(int moduleSize, QRCodeStyleDefinitions style) {
-        if (moduleSize < 1) {
-            throw new IllegalArgumentException("moduleSize must be >= 1");
-        }
+        validateRender(moduleSize, style);
         return new QRCodeSVGRenderer(style).render(matrixData, moduleSize);
-    }
-
-    public void writeImage(OutputStream out) throws IOException {
-        writeImage(out, ImageExtensions.PNG, MODULE_SIZE, DEFAULT_STYLE);
     }
 
     public void writeImage(OutputStream out, ImageExtensions extension) throws IOException {
         writeImage(out, extension, MODULE_SIZE, DEFAULT_STYLE);
-    }
-
-    public void writeImage(OutputStream out, ImageExtensions extension, int moduleSize) throws IOException {
-        writeImage(out, extension, moduleSize, DEFAULT_STYLE);
     }
 
     /**
@@ -120,9 +108,7 @@ public class QRCode {
      */
     public void writeImage(OutputStream out, ImageExtensions extension, int moduleSize, QRCodeStyleDefinitions style)
             throws IOException {
-        if (moduleSize < 1) {
-            throw new IllegalArgumentException("moduleSize must be >= 1");
-        }
+        validateRender(moduleSize, style);
 
         BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, moduleSize);
 
@@ -132,6 +118,7 @@ public class QRCode {
                         "No ImageIO writer available for format \"" + extension.getExtension() + "\"");
             }
         }
+        out.flush();
     }
 
     public byte[] toImageBytes() {
@@ -142,16 +129,8 @@ public class QRCode {
         return toImageBytes(extension, MODULE_SIZE, DEFAULT_STYLE);
     }
 
-    public byte[] toImageBytes(ImageExtensions extension, int moduleSize) {
-        return toImageBytes(extension, moduleSize, DEFAULT_STYLE);
-    }
-
     public byte[] toImageBytes(QRCodeStyleDefinitions style) {
         return toImageBytes(ImageExtensions.PNG, MODULE_SIZE, style);
-    }
-
-    public byte[] toImageBytes(ImageExtensions extension, QRCodeStyleDefinitions style) {
-        return toImageBytes(extension, MODULE_SIZE, style);
     }
 
     /**
@@ -171,5 +150,18 @@ public class QRCode {
             throw new UncheckedIOException("Error generating QR code image", e);
         }
         return baos.toByteArray();
+    }
+
+    private void validateRender(int moduleSize, QRCodeStyleDefinitions style) {
+        if (moduleSize < 1) {
+            throw new IllegalArgumentException("moduleSize must be >= 1");
+        }
+        double coverage = style.getCenterImageCoverage();
+        if (coverage > eccLevel.getRecoverableRatio()) {
+            throw new IllegalArgumentException(String.format(
+                    "Center image hides about %.0f%% of the symbol, more than error-correction level %s can recover (%.0f%%); "
+                            + "use a higher ECC level or a smaller centerImageRatio",
+                    coverage * 100, eccLevel, eccLevel.getRecoverableRatio() * 100));
+        }
     }
 }
