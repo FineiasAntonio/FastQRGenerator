@@ -1,6 +1,8 @@
 package com.qrlib.render;
 
 import com.qrlib.config.CenterImagePadShape;
+import com.qrlib.config.ModuleContext;
+import com.qrlib.config.ModuleShape;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
 
@@ -9,29 +11,31 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 
 public class QRCodeImageRenderer {
 
-    private static final double CENTER_IMAGE_PAD_RATIO = 0.1;
+    public static final int MAX_IMAGE_SIZE = 16384;
 
     private static final double ROUNDED_PAD_ARC_RATIO = 0.25;
 
     private final QRCodeStyleDefinitions style;
-    private final ModuleShape moduleShape;
 
     public QRCodeImageRenderer(QRCodeStyleDefinitions style) {
         this.style = style;
-        this.moduleShape = style.isRoundedCorners()
-                ? new RoundedModuleShape(style.getCornerRadius())
-                : new SquareModuleShape();
     }
 
     public BufferedImage render(MatrixData matrixData, int moduleSize) {
         byte[][] matrix = matrixData.getMatrix();
         int size = matrix.length;
         int border = style.getBorderThickness();
-        int imageSize = (size + border * 2) * moduleSize;
+        long requestedSize = (long) (size + border * 2) * moduleSize;
+        if (requestedSize > MAX_IMAGE_SIZE) {
+            throw new IllegalArgumentException("Image side of " + requestedSize
+                    + "px exceeds the maximum of " + MAX_IMAGE_SIZE + "px; lower moduleSize or border thickness");
+        }
+        int imageSize = (int) requestedSize;
 
         Color borderColor = Color.decode(style.getBorderColor());
         Color backgroundColor = Color.decode(style.getBackgroundColor());
@@ -39,7 +43,8 @@ public class QRCodeImageRenderer {
 
         BufferedImage image = new BufferedImage(imageSize, imageSize, BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics = image.createGraphics();
-        if (style.isRoundedCorners()) {
+        boolean squareModules = style.getModuleShape() == ModuleShape.SQUARE;
+        if (!squareModules) {
             graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         }
@@ -51,14 +56,17 @@ public class QRCodeImageRenderer {
         graphics.fillRect(border * moduleSize, border * moduleSize, size * moduleSize, size * moduleSize);
 
         graphics.setColor(moduleColor);
-        for (int row = 0; row < size; row++) {
-            for (int col = 0; col < size; col++) {
-                if (matrix[row][col] == 1) {
-                    int x = (col + border) * moduleSize;
-                    int y = (row + border) * moduleSize;
-                    moduleShape.fill(graphics, x, y, moduleSize, ModuleCorners.at(matrix, row, col));
+        if (squareModules) {
+            for (int row = 0; row < size; row++) {
+                for (int col = 0; col < size; col++) {
+                    if (matrix[row][col] == 1) {
+                        graphics.fillRect((col + border) * moduleSize, (row + border) * moduleSize,
+                                moduleSize, moduleSize);
+                    }
                 }
             }
+        } else {
+            graphics.fill(buildModulesPath(matrix, border, moduleSize));
         }
 
         if (style.getCenterImage() != null) {
@@ -69,13 +77,27 @@ public class QRCodeImageRenderer {
         return image;
     }
 
+    private Path2D buildModulesPath(byte[][] matrix, int border, int moduleSize) {
+        ModuleShape moduleShape = style.getModuleShape();
+        Path2D.Double path = new Path2D.Double();
+        for (int row = 0; row < matrix.length; row++) {
+            for (int col = 0; col < matrix.length; col++) {
+                if (matrix[row][col] == 1) {
+                    path.append(moduleShape.create((col + border) * moduleSize, (row + border) * moduleSize,
+                            moduleSize, ModuleContext.at(matrix, row, col)), false);
+                }
+            }
+        }
+        return path;
+    }
+
     /**
      * Scales the center image to fit the configured fraction of the symbol width, keeping
      * its aspect ratio, and draws it over a background-colored pad at the image center.
      * The pad follows the configured {@link CenterImagePadShape}.
      */
     private void drawCenterImage(Graphics2D graphics, Color backgroundColor, int symbolSize, int imageSize) {
-        int maxSide = (int) Math.round(symbolSize * style.getCenterImageRatio());
+        int maxSide = Math.max(1, (int) Math.round(symbolSize * style.getCenterImageRatio()));
         if (style.getCenterImagePadShape() == CenterImagePadShape.CIRCLE) {
             drawCircularCenterImage(graphics, backgroundColor, maxSide, imageSize);
             return;
@@ -89,7 +111,7 @@ public class QRCodeImageRenderer {
 
         int x = (imageSize - width) / 2;
         int y = (imageSize - height) / 2;
-        int pad = (int) Math.round(Math.max(width, height) * CENTER_IMAGE_PAD_RATIO);
+        int pad = (int) Math.round(Math.max(width, height) * QRCodeStyleDefinitions.CENTER_IMAGE_PAD_RATIO);
 
         graphics.setColor(backgroundColor);
         if (style.getCenterImagePadShape() == CenterImagePadShape.ROUNDED) {
@@ -110,7 +132,7 @@ public class QRCodeImageRenderer {
      * diameter, scaled to cover it fully.
      */
     private void drawCircularCenterImage(Graphics2D graphics, Color backgroundColor, int diameter, int imageSize) {
-        int pad = (int) Math.round(diameter * CENTER_IMAGE_PAD_RATIO);
+        int pad = (int) Math.round(diameter * QRCodeStyleDefinitions.CENTER_IMAGE_PAD_RATIO);
         int x = (imageSize - diameter) / 2;
         int y = (imageSize - diameter) / 2;
 

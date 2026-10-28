@@ -1,18 +1,20 @@
 package com.qrlib.render;
 
 import com.qrlib.config.CenterImagePadShape;
+import com.qrlib.config.ModuleContext;
+import com.qrlib.config.ModuleShape;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
 
-import java.util.Locale;
+import java.awt.Shape;
+import java.awt.geom.PathIterator;
+import java.math.BigDecimal;
 
 public class QRCodeSVGRenderer {
 
-    private static final double CENTER_IMAGE_PAD_RATIO = 0.1;
-
     private static final double ROUNDED_PAD_ARC_RATIO = 0.25;
 
-    private static final String CENTER_CLIP_ID = "qr-center-clip";
+    private static final String CENTER_CLIP_ID_PREFIX = "qr-center-clip-";
 
     private final QRCodeStyleDefinitions style;
 
@@ -31,14 +33,14 @@ public class QRCodeSVGRenderer {
         if (style.getCenterImage() != null) {
             svg.append(" xmlns:xlink=\"http://www.w3.org/1999/xlink\"");
         }
-        svg.append(" width=\"").append(total * moduleSize)
-                .append("\" height=\"").append(total * moduleSize)
+        svg.append(" width=\"").append((long) total * moduleSize)
+                .append("\" height=\"").append((long) total * moduleSize)
                 .append("\" viewBox=\"0 0 ").append(total).append(' ').append(total).append("\">");
 
         appendBackground(svg, size, border, total);
         appendModules(svg, matrix, size, border);
         if (style.getCenterImage() != null) {
-            CenterImageEmbedder.append(svg, style, size, total);
+            CenterImageEmbedder.append(svg, style, size, total, moduleSize);
         }
 
         svg.append("</svg>");
@@ -61,8 +63,8 @@ public class QRCodeSVGRenderer {
     private void appendModules(StringBuilder svg, byte[][] matrix, int size, int border) {
         svg.append("<path fill=\"").append(style.getModuleColor()).append('"');
         StringBuilder path = new StringBuilder();
-        if (style.isRoundedCorners() && style.getCornerRadius() > 0) {
-            appendRoundedModules(path, matrix, size, border);
+        if (style.getModuleShape() != ModuleShape.SQUARE) {
+            appendShapedModules(path, matrix, size, border);
         } else {
             // crispEdges keeps abutting runs from showing antialiasing seams between rows.
             svg.append(" shape-rendering=\"crispEdges\"");
@@ -88,79 +90,57 @@ public class QRCodeSVGRenderer {
         }
     }
 
-    private void appendRoundedModules(StringBuilder path, byte[][] matrix, int size, int border) {
-        double radius = style.getCornerRadius();
+    private void appendShapedModules(StringBuilder path, byte[][] matrix, int size, int border) {
+        ModuleShape moduleShape = style.getModuleShape();
+        double[] coords = new double[6];
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
                 if (matrix[row][col] != 1) {
                     continue;
                 }
-                appendRoundedModule(path, col + border, row + border, radius, ModuleCorners.at(matrix, row, col));
+                Shape shape = moduleShape.create(col + border, row + border, 1, ModuleContext.at(matrix, row, col));
+                appendOutline(path, shape.getPathIterator(null), coords);
             }
         }
     }
 
-    private static void appendRoundedModule(StringBuilder path, int x, int y, double r, ModuleCorners corners) {
-        double left = x;
-        double top = y;
-        double right = x + 1;
-        double bottom = y + 1;
-
-        path.append('M').append(num(corners.isTopLeft() ? left + r : left)).append(' ').append(num(top));
-
-        path.append('L').append(num(corners.isTopRight() ? right - r : right)).append(' ').append(num(top));
-        if (corners.isTopRight()) {
-            quadTo(path, right, top, right, top + r);
+    private static void appendOutline(StringBuilder path, PathIterator it, double[] c) {
+        for (; !it.isDone(); it.next()) {
+            switch (it.currentSegment(c)) {
+                case PathIterator.SEG_MOVETO:
+                    path.append('M').append(num(c[0])).append(' ').append(num(c[1]));
+                    break;
+                case PathIterator.SEG_LINETO:
+                    path.append('L').append(num(c[0])).append(' ').append(num(c[1]));
+                    break;
+                case PathIterator.SEG_QUADTO:
+                    path.append('Q').append(num(c[0])).append(' ').append(num(c[1]))
+                            .append(' ').append(num(c[2])).append(' ').append(num(c[3]));
+                    break;
+                case PathIterator.SEG_CUBICTO:
+                    path.append('C').append(num(c[0])).append(' ').append(num(c[1]))
+                            .append(' ').append(num(c[2])).append(' ').append(num(c[3]))
+                            .append(' ').append(num(c[4])).append(' ').append(num(c[5]));
+                    break;
+                default:
+                    path.append('z');
+            }
         }
-
-        path.append('L').append(num(right)).append(' ').append(num(corners.isBottomRight() ? bottom - r : bottom));
-        if (corners.isBottomRight()) {
-            quadTo(path, right, bottom, right - r, bottom);
-        }
-
-        path.append('L').append(num(corners.isBottomLeft() ? left + r : left)).append(' ').append(num(bottom));
-        if (corners.isBottomLeft()) {
-            quadTo(path, left, bottom, left, bottom - r);
-        }
-
-        path.append('L').append(num(left)).append(' ').append(num(corners.isTopLeft() ? top + r : top));
-        if (corners.isTopLeft()) {
-            quadTo(path, left, top, left + r, top);
-        }
-
-        path.append('z');
-    }
-
-    private static void quadTo(StringBuilder path, double cx, double cy, double x, double y) {
-        path.append('Q').append(num(cx)).append(' ').append(num(cy))
-                .append(' ').append(num(x)).append(' ').append(num(y));
     }
 
     private static String num(double value) {
-        long rounded = Math.round(value);
-        if (Math.abs(value - rounded) < 1e-9) {
-            return Long.toString(rounded);
-        }
-        String text = String.format(Locale.US, "%.4f", value);
-        int end = text.length();
-        while (text.charAt(end - 1) == '0') {
-            end--;
-        }
-        if (text.charAt(end - 1) == '.') {
-            end--;
-        }
-        return text.substring(0, end);
+        return BigDecimal.valueOf(Math.round(value * 10000), 4).stripTrailingZeros().toPlainString();
     }
 
     private static final class CenterImageEmbedder {
 
-        static void append(StringBuilder svg, QRCodeStyleDefinitions style, int size, int total) {
+        static void append(StringBuilder svg, QRCodeStyleDefinitions style, int size, int total, int moduleSize) {
             java.awt.image.BufferedImage image = style.getCenterImage();
             double maxSide = size * style.getCenterImageRatio();
             String background = style.getBackgroundColor();
 
             if (style.getCenterImagePadShape() == CenterImagePadShape.CIRCLE) {
-                appendCircular(svg, image, maxSide, total, background);
+                appendCircular(svg, image, maxSide, total, background, moduleSize);
                 return;
             }
 
@@ -169,7 +149,7 @@ public class QRCodeSVGRenderer {
             double height = image.getHeight() * scale;
             double x = (total - width) / 2;
             double y = (total - height) / 2;
-            double pad = Math.max(width, height) * CENTER_IMAGE_PAD_RATIO;
+            double pad = Math.max(width, height) * QRCodeStyleDefinitions.CENTER_IMAGE_PAD_RATIO;
 
             svg.append("<rect x=\"").append(num(x - pad)).append("\" y=\"").append(num(y - pad))
                     .append("\" width=\"").append(num(width + pad * 2))
@@ -180,28 +160,29 @@ public class QRCodeSVGRenderer {
             }
             svg.append(" fill=\"").append(background).append("\"/>");
 
-            appendImage(svg, image, x, y, width, height, null);
+            appendImage(svg, image, x, y, width, height, null, moduleSize);
         }
 
         static void appendCircular(StringBuilder svg, java.awt.image.BufferedImage image,
-                double diameter, int total, String background) {
-            double pad = diameter * CENTER_IMAGE_PAD_RATIO;
+                double diameter, int total, String background, int moduleSize) {
+            double pad = diameter * QRCodeStyleDefinitions.CENTER_IMAGE_PAD_RATIO;
             double center = total / 2.0;
             double x = center - diameter / 2;
 
             svg.append("<circle cx=\"").append(num(center)).append("\" cy=\"").append(num(center))
                     .append("\" r=\"").append(num((diameter + pad * 2) / 2))
                     .append("\" fill=\"").append(background).append("\"/>");
-            svg.append("<clipPath id=\"").append(CENTER_CLIP_ID).append("\"><circle cx=\"").append(num(center))
+                String clipId = CENTER_CLIP_ID_PREFIX + num(center).replace('.', '_') + "-" + num(diameter).replace('.', '_');
+            svg.append("<clipPath id=\"").append(clipId).append("\"><circle cx=\"").append(num(center))
                     .append("\" cy=\"").append(num(center)).append("\" r=\"").append(num(diameter / 2))
                     .append("\"/></clipPath>");
 
-            appendImage(svg, image, x, x, diameter, diameter, CENTER_CLIP_ID);
+            appendImage(svg, image, x, x, diameter, diameter, clipId, moduleSize);
         }
 
         static void appendImage(StringBuilder svg, java.awt.image.BufferedImage image,
-                double x, double y, double width, double height, String clipId) {
-            String dataUri = toDataUri(image);
+                double x, double y, double width, double height, String clipId, int moduleSize) {
+            String dataUri = toDataUri(scaleDown(image, width * moduleSize * 2, height * moduleSize * 2));
             svg.append("<image x=\"").append(num(x)).append("\" y=\"").append(num(y))
                     .append("\" width=\"").append(num(width)).append("\" height=\"").append(num(height))
                     .append('"');
@@ -212,10 +193,30 @@ public class QRCodeSVGRenderer {
             svg.append(" href=\"").append(dataUri).append("\" xlink:href=\"").append(dataUri).append("\"/>");
         }
 
+        static java.awt.image.BufferedImage scaleDown(java.awt.image.BufferedImage image,
+                double targetWidth, double targetHeight) {
+            double factor = Math.max(targetWidth / image.getWidth(), targetHeight / image.getHeight());
+            if (factor >= 1) {
+                return image;
+            }
+            int width = Math.max(1, (int) Math.round(image.getWidth() * factor));
+            int height = Math.max(1, (int) Math.round(image.getHeight() * factor));
+            java.awt.image.BufferedImage scaled =
+                    new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+            java.awt.Graphics2D graphics = scaled.createGraphics();
+            graphics.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                    java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            graphics.drawImage(image, 0, 0, width, height, null);
+            graphics.dispose();
+            return scaled;
+        }
+
         static String toDataUri(java.awt.image.BufferedImage image) {
             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
             try {
-                javax.imageio.ImageIO.write(image, "png", out);
+                if (!javax.imageio.ImageIO.write(image, "png", out)) {
+                    throw new IllegalStateException("No ImageIO writer available to embed the center image as PNG");
+                }
             } catch (java.io.IOException e) {
                 throw new java.io.UncheckedIOException("Error encoding center image for SVG", e);
             }

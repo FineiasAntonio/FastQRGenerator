@@ -1,6 +1,7 @@
 package com.qrlib.render;
 
 import com.qrlib.config.CenterImagePadShape;
+import com.qrlib.config.ModuleShape;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
 import org.junit.jupiter.api.Test;
@@ -60,7 +61,7 @@ class QRCodeImageRendererTest {
         matrixData.setDark(0, 0, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
-                .roundedCorners(true)
+                .moduleShape(ModuleShape.rounded(0.5))
                 .borderThickness(1)
                 .build();
 
@@ -77,7 +78,7 @@ class QRCodeImageRendererTest {
         matrixData.setDark(0, 1, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
-                .roundedCorners(true)
+                .moduleShape(ModuleShape.rounded(0.5))
                 .borderThickness(1)
                 .build();
 
@@ -98,7 +99,7 @@ class QRCodeImageRendererTest {
         matrixData.setDark(0, 0, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
-                .cornerRadius(0)
+                .moduleShape(ModuleShape.rounded(0))
                 .borderThickness(1)
                 .build();
 
@@ -114,7 +115,7 @@ class QRCodeImageRendererTest {
         matrixData.setDark(0, 0, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
-                .cornerRadius(0.2)
+                .moduleShape(ModuleShape.rounded(0.2))
                 .borderThickness(1)
                 .build();
 
@@ -239,5 +240,24 @@ class QRCodeImageRendererTest {
             }
         }
         return matrixData;
+    }
+
+    @Test
+    void imageLargerThanTheMaximumSideIsRejected() {
+        QRCodeImageRenderer renderer = new QRCodeImageRenderer(QRCodeStyleDefinitions.builder().build());
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> renderer.render(new MatrixData(21), 100_000));
+    }
+
+    @Test
+    void tinyCircularCenterImageStillRenders() {
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .centerImage(new BufferedImage(4, 4, BufferedImage.TYPE_INT_ARGB))
+                .centerImageRatio(0.01)
+                .centerImagePadShape(CenterImagePadShape.CIRCLE)
+                .build();
+
+        new QRCodeImageRenderer(style).render(new MatrixData(21), 1);
     }
 }

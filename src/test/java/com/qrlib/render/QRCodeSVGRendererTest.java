@@ -1,6 +1,7 @@
 package com.qrlib.render;
 
 import com.qrlib.config.CenterImagePadShape;
+import com.qrlib.config.ModuleShape;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
 import org.junit.jupiter.api.Test;
@@ -91,7 +92,7 @@ class QRCodeSVGRendererTest {
         matrixData.setDark(0, 1, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
-                .roundedCorners(true)
+                .moduleShape(ModuleShape.rounded(0.5))
                 .borderThickness(0)
                 .build();
 
@@ -112,7 +113,7 @@ class QRCodeSVGRendererTest {
         matrixData.setDark(0, 0, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
-                .cornerRadius(0.2)
+                .moduleShape(ModuleShape.rounded(0.2))
                 .borderThickness(0)
                 .build();
 
@@ -131,7 +132,7 @@ class QRCodeSVGRendererTest {
         matrixData.setDark(0, 0, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
-                .cornerRadius(0)
+                .moduleShape(ModuleShape.rounded(0))
                 .borderThickness(0)
                 .build();
 
@@ -194,9 +195,9 @@ class QRCodeSVGRendererTest {
 
         // 6-unit logo circle inside a 7.2-unit pad circle, both centered at (10,10).
         assertTrue(svg.contains("<circle cx=\"10\" cy=\"10\" r=\"3.6\" fill=\"#FFFFFF\"/>"));
-        assertTrue(svg.contains("<clipPath id=\"qr-center-clip\"><circle cx=\"10\" cy=\"10\" r=\"3\"/></clipPath>"));
+        assertTrue(svg.contains("<clipPath id=\"qr-center-clip-10-6\"><circle cx=\"10\" cy=\"10\" r=\"3\"/></clipPath>"));
         assertTrue(svg.contains("preserveAspectRatio=\"xMidYMid slice\""));
-        assertTrue(svg.contains("clip-path=\"url(#qr-center-clip)\""));
+        assertTrue(svg.contains("clip-path=\"url(#qr-center-clip-10-6)\""));
         assertWellFormedXml(svg);
     }
 
@@ -234,5 +235,38 @@ class QRCodeSVGRendererTest {
             }
         }
         return matrixData;
+    }
+
+    @Test
+    void circularClipIdsDifferBetweenSymbolsOfDifferentSize() {
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .centerImage(new BufferedImage(4, 4, BufferedImage.TYPE_INT_ARGB))
+                .centerImagePadShape(CenterImagePadShape.CIRCLE)
+                .build();
+
+        String small = new QRCodeSVGRenderer(style).render(new MatrixData(21), 2);
+        String large = new QRCodeSVGRenderer(style).render(new MatrixData(41), 2);
+
+        assertFalse(clipId(small).equals(clipId(large)));
+    }
+
+    private static String clipId(String svg) {
+        int start = svg.indexOf("<clipPath id=\"") + "<clipPath id=\"".length();
+        return svg.substring(start, svg.indexOf('"', start));
+    }
+
+    @Test
+    void dotModulesAreEmittedAsCurvedPaths() {
+        MatrixData matrixData = new MatrixData(21);
+        matrixData.setDark(10, 10, true);
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .moduleShape(ModuleShape.dot())
+                .build();
+        String svg = new QRCodeSVGRenderer(style).render(matrixData, 2);
+
+        assertTrue(svg.contains("C"));
+        assertFalse(svg.contains("crispEdges"));
+        assertWellFormedXml(svg);
     }
 }

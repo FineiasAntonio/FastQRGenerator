@@ -4,15 +4,12 @@ import java.awt.image.BufferedImage;
 
 /**
  * Visual style applied when rendering a QR code image: colors, quiet-zone (border)
- * thickness, module corner rounding and an optional center image (logo). Colors are
+ * thickness, module shape and an optional center image (logo). Colors are
  * validated eagerly and accept {@code #RRGGBB} or shorthand {@code #RGB} hex notation.
  * When no border color is set, the border defaults to the background color so the quiet
  * zone blends with the symbol.
  */
 public class QRCodeStyleDefinitions {
-
-    /** Largest corner radius, as a fraction of the module size (half the module = full round). */
-    public static final double MAX_CORNER_RADIUS = 0.5;
 
     /**
      * Largest fraction of the symbol width the center image may cover. Beyond this the
@@ -20,9 +17,14 @@ public class QRCodeStyleDefinitions {
      */
     public static final double MAX_CENTER_IMAGE_RATIO = 0.3;
 
+    /** Largest quiet-zone thickness, in modules. */
+    public static final int MAX_BORDER_THICKNESS = 100;
+
+    /** Pad painted around the center image, as a fraction of its larger side, on each side. */
+    public static final double CENTER_IMAGE_PAD_RATIO = 0.1;
+
     private final int borderThickness;
-    private final boolean roundedCorners;
-    private final double cornerRadius;
+    private final ModuleShape moduleShape;
     private final String moduleColor;
     private final String backgroundColor;
     private final String borderColor;
@@ -32,8 +34,7 @@ public class QRCodeStyleDefinitions {
 
     private QRCodeStyleDefinitions(Builder builder) {
         this.borderThickness = builder.borderThickness;
-        this.roundedCorners = builder.roundedCorners;
-        this.cornerRadius = builder.cornerRadius;
+        this.moduleShape = builder.moduleShape;
         this.moduleColor = builder.moduleColor;
         this.backgroundColor = builder.backgroundColor;
         this.borderColor = builder.borderColor != null ? builder.borderColor : builder.backgroundColor;
@@ -46,13 +47,8 @@ public class QRCodeStyleDefinitions {
         return borderThickness;
     }
 
-    public boolean isRoundedCorners() {
-        return roundedCorners;
-    }
-
-    /** Corner radius as a fraction of the module size, in {@code [0, 0.5]}. */
-    public double getCornerRadius() {
-        return cornerRadius;
+    public ModuleShape getModuleShape() {
+        return moduleShape;
     }
 
     public String getModuleColor() {
@@ -77,6 +73,18 @@ public class QRCodeStyleDefinitions {
         return centerImageRatio;
     }
 
+    /**
+     * Fraction of the symbol area hidden by the center image and its pad, or {@code 0} when
+     * no center image is set. This is an upper bound: it assumes a square image.
+     */
+    public double getCenterImageCoverage() {
+        if (centerImage == null) {
+            return 0;
+        }
+        double side = centerImageRatio * (1 + 2 * CENTER_IMAGE_PAD_RATIO);
+        return side * side;
+    }
+
     /** Shape of the background pad painted behind the center image. */
     public CenterImagePadShape getCenterImagePadShape() {
         return centerImagePadShape;
@@ -88,8 +96,7 @@ public class QRCodeStyleDefinitions {
 
     public static class Builder {
         private int borderThickness = 4;
-        private boolean roundedCorners = false;
-        private double cornerRadius = MAX_CORNER_RADIUS;
+        private ModuleShape moduleShape = ModuleShape.SQUARE;
         private String moduleColor = "#000000"; // Black
         private String backgroundColor = "#FFFFFF"; // White
         private String borderColor; // null => follows backgroundColor
@@ -101,30 +108,19 @@ public class QRCodeStyleDefinitions {
         }
 
         public Builder borderThickness(int borderThickness) {
-            if (borderThickness < 0) {
-                throw new IllegalArgumentException("Border thickness cannot be negative");
+            if (borderThickness < 0 || borderThickness > MAX_BORDER_THICKNESS) {
+                throw new IllegalArgumentException(
+                        "Border thickness must be between 0 and " + MAX_BORDER_THICKNESS + ", got: " + borderThickness);
             }
             this.borderThickness = borderThickness;
             return this;
         }
 
-        public Builder roundedCorners(boolean roundedCorners) {
-            this.roundedCorners = roundedCorners;
-            return this;
-        }
-
-        /**
-         * Sets the module corner radius as a fraction of the module size, from {@code 0}
-         * (square) to {@code 0.5} (fully round ends). Implies {@link #roundedCorners(boolean)
-         * roundedCorners(true)}.
-         */
-        public Builder cornerRadius(double cornerRadius) {
-            if (cornerRadius < 0 || cornerRadius > MAX_CORNER_RADIUS) {
-                throw new IllegalArgumentException(
-                        "Corner radius must be between 0 and " + MAX_CORNER_RADIUS + ", got: " + cornerRadius);
+        public Builder moduleShape(ModuleShape moduleShape) {
+            if (moduleShape == null) {
+                throw new IllegalArgumentException("Module shape cannot be null");
             }
-            this.cornerRadius = cornerRadius;
-            this.roundedCorners = true;
+            this.moduleShape = moduleShape;
             return this;
         }
 
