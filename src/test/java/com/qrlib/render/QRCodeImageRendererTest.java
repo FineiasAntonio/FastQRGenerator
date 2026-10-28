@@ -1,6 +1,7 @@
 package com.qrlib.render;
 
 import com.qrlib.config.CenterImagePadShape;
+import com.qrlib.config.FinderShape;
 import com.qrlib.config.ModuleShape;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
@@ -57,8 +58,8 @@ class QRCodeImageRendererTest {
 
     @Test
     void roundedCornersClipTheModuleCorners() {
-        MatrixData matrixData = new MatrixData(1);
-        matrixData.setDark(0, 0, true);
+        MatrixData matrixData = new MatrixData(21);
+        matrixData.setDark(10, 10, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .moduleShape(ModuleShape.rounded(0.5))
@@ -67,15 +68,15 @@ class QRCodeImageRendererTest {
 
         BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
 
-        assertEquals(Color.WHITE.getRGB(), image.getRGB(10, 10)); // clipped corner stays background
-        assertEquals(Color.BLACK.getRGB(), image.getRGB(15, 15)); // module center is filled
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(110, 110)); // clipped corner stays background
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(115, 115)); // module center is filled
     }
 
     @Test
     void roundedCornersOnlyAppearAtTheEndsOfConnectedModules() {
-        MatrixData matrixData = new MatrixData(2);
-        matrixData.setDark(0, 0, true);
-        matrixData.setDark(0, 1, true);
+        MatrixData matrixData = new MatrixData(21);
+        matrixData.setDark(10, 10, true);
+        matrixData.setDark(10, 11, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .moduleShape(ModuleShape.rounded(0.5))
@@ -85,18 +86,18 @@ class QRCodeImageRendererTest {
         BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
 
         // Seam between the two connected modules stays square, no gap.
-        assertEquals(Color.BLACK.getRGB(), image.getRGB(19, 15));
-        assertEquals(Color.BLACK.getRGB(), image.getRGB(20, 15));
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(119, 115));
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(120, 115));
 
         // Outer ends of the pair are rounded, clipping the far corners.
-        assertEquals(Color.WHITE.getRGB(), image.getRGB(10, 10)); // left end, top-left corner
-        assertEquals(Color.WHITE.getRGB(), image.getRGB(29, 10)); // right end, top-right corner
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(110, 110)); // left end, top-left corner
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(129, 110)); // right end, top-right corner
     }
 
     @Test
     void zeroCornerRadiusFillsTheWholeModule() {
-        MatrixData matrixData = new MatrixData(1);
-        matrixData.setDark(0, 0, true);
+        MatrixData matrixData = new MatrixData(21);
+        matrixData.setDark(10, 10, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .moduleShape(ModuleShape.rounded(0))
@@ -105,14 +106,14 @@ class QRCodeImageRendererTest {
 
         BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
 
-        assertEquals(Color.BLACK.getRGB(), image.getRGB(10, 10)); // corner is not clipped
-        assertEquals(Color.BLACK.getRGB(), image.getRGB(15, 15));
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(110, 110)); // corner is not clipped
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(115, 115));
     }
 
     @Test
     void smallerCornerRadiusClipsLessOfTheCorner() {
-        MatrixData matrixData = new MatrixData(1);
-        matrixData.setDark(0, 0, true);
+        MatrixData matrixData = new MatrixData(21);
+        matrixData.setDark(10, 10, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .moduleShape(ModuleShape.rounded(0.2))
@@ -122,8 +123,8 @@ class QRCodeImageRendererTest {
         BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
 
         // With radius 2px the corner pixel is clipped, but (12,12) — clipped at radius 5 — is filled.
-        assertEquals(Color.BLACK.getRGB(), image.getRGB(12, 12));
-        assertEquals(Color.BLACK.getRGB(), image.getRGB(15, 15));
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(112, 112));
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(115, 115));
     }
 
     @Test
@@ -259,5 +260,24 @@ class QRCodeImageRendererTest {
                 .build();
 
         new QRCodeImageRenderer(style).render(new MatrixData(21), 1);
+    }
+
+    @Test
+    void circleFinderRoundsTheOuterCornerOfEachFinder() {
+        MatrixData matrixData = new MatrixData(21);
+        for (int i = 0; i < 7; i++) {
+            matrixData.setDark(0, i, true);
+        }
+
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .finderShape(FinderShape.circle())
+                .borderThickness(0)
+                .build();
+
+        BufferedImage image = new QRCodeImageRenderer(style).render(matrixData, 10);
+
+        assertEquals(Color.WHITE.getRGB(), image.getRGB(0, 0));
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(35, 2));
+        assertEquals(Color.BLACK.getRGB(), image.getRGB(35, 35));
     }
 }

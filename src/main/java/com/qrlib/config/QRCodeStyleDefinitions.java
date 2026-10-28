@@ -4,7 +4,7 @@ import java.awt.image.BufferedImage;
 
 /**
  * Visual style applied when rendering a QR code image: colors, quiet-zone (border)
- * thickness, module shape and an optional center image (logo). Colors are
+ * thickness, module and finder shapes and an optional center image (logo). Colors are
  * validated eagerly and accept {@code #RRGGBB} or shorthand {@code #RGB} hex notation.
  * When no border color is set, the border defaults to the background color so the quiet
  * zone blends with the symbol.
@@ -25,6 +25,7 @@ public class QRCodeStyleDefinitions {
 
     private final int borderThickness;
     private final ModuleShape moduleShape;
+    private final FinderShape finderShape;
     private final String moduleColor;
     private final String backgroundColor;
     private final String borderColor;
@@ -35,6 +36,7 @@ public class QRCodeStyleDefinitions {
     private QRCodeStyleDefinitions(Builder builder) {
         this.borderThickness = builder.borderThickness;
         this.moduleShape = builder.moduleShape;
+        this.finderShape = builder.finderShape;
         this.moduleColor = builder.moduleColor;
         this.backgroundColor = builder.backgroundColor;
         this.borderColor = builder.borderColor != null ? builder.borderColor : builder.backgroundColor;
@@ -49,6 +51,10 @@ public class QRCodeStyleDefinitions {
 
     public ModuleShape getModuleShape() {
         return moduleShape;
+    }
+
+    public FinderShape getFinderShape() {
+        return finderShape;
     }
 
     public String getModuleColor() {
@@ -97,6 +103,7 @@ public class QRCodeStyleDefinitions {
     public static class Builder {
         private int borderThickness = 4;
         private ModuleShape moduleShape = ModuleShape.SQUARE;
+        private FinderShape finderShape = FinderShape.SQUARE;
         private String moduleColor = "#000000"; // Black
         private String backgroundColor = "#FFFFFF"; // White
         private String borderColor; // null => follows backgroundColor
@@ -121,6 +128,14 @@ public class QRCodeStyleDefinitions {
                 throw new IllegalArgumentException("Module shape cannot be null");
             }
             this.moduleShape = moduleShape;
+            return this;
+        }
+
+        public Builder finderShape(FinderShape finderShape) {
+            if (finderShape == null) {
+                throw new IllegalArgumentException("Finder shape cannot be null");
+            }
+            this.finderShape = finderShape;
             return this;
         }
 

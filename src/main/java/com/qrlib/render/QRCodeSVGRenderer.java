@@ -1,12 +1,9 @@
 package com.qrlib.render;
 
 import com.qrlib.config.CenterImagePadShape;
-import com.qrlib.config.ModuleContext;
-import com.qrlib.config.ModuleShape;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
 
-import java.awt.Shape;
 import java.awt.geom.PathIterator;
 import java.math.BigDecimal;
 
@@ -63,12 +60,13 @@ public class QRCodeSVGRenderer {
     private void appendModules(StringBuilder svg, byte[][] matrix, int size, int border) {
         svg.append("<path fill=\"").append(style.getModuleColor()).append('"');
         StringBuilder path = new StringBuilder();
-        if (style.getModuleShape() != ModuleShape.SQUARE) {
-            appendShapedModules(path, matrix, size, border);
-        } else {
+        if (SymbolPath.isPlainSquares(style)) {
             // crispEdges keeps abutting runs from showing antialiasing seams between rows.
             svg.append(" shape-rendering=\"crispEdges\"");
             appendSquareRuns(path, matrix, size, border);
+        } else {
+            svg.append(" fill-rule=\"evenodd\"");
+            appendOutline(path, SymbolPath.build(matrix, border, 1, style).getPathIterator(null), new double[6]);
         }
         svg.append(" d=\"").append(path).append("\"/>");
     }
@@ -86,20 +84,6 @@ public class QRCodeSVGRenderer {
                 int length = col - runStart;
                 path.append('M').append(runStart + border).append(' ').append(row + border)
                         .append('h').append(length).append("v1h-").append(length).append('z');
-            }
-        }
-    }
-
-    private void appendShapedModules(StringBuilder path, byte[][] matrix, int size, int border) {
-        ModuleShape moduleShape = style.getModuleShape();
-        double[] coords = new double[6];
-        for (int row = 0; row < size; row++) {
-            for (int col = 0; col < size; col++) {
-                if (matrix[row][col] != 1) {
-                    continue;
-                }
-                Shape shape = moduleShape.create(col + border, row + border, 1, ModuleContext.at(matrix, row, col));
-                appendOutline(path, shape.getPathIterator(null), coords);
             }
         }
     }

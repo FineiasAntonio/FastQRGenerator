@@ -1,6 +1,7 @@
 package com.qrlib.render;
 
 import com.qrlib.config.CenterImagePadShape;
+import com.qrlib.config.FinderShape;
 import com.qrlib.config.ModuleShape;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
@@ -87,9 +88,9 @@ class QRCodeSVGRendererTest {
 
     @Test
     void roundedCornersOnlyAppearAtTheEndsOfConnectedModules() {
-        MatrixData matrixData = new MatrixData(2);
-        matrixData.setDark(0, 0, true);
-        matrixData.setDark(0, 1, true);
+        MatrixData matrixData = new MatrixData(21);
+        matrixData.setDark(10, 10, true);
+        matrixData.setDark(10, 11, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .moduleShape(ModuleShape.rounded(0.5))
@@ -101,16 +102,16 @@ class QRCodeSVGRendererTest {
         // Left module rounds only its left corners, right module only its right ones:
         // two curves each, and none anchored on the seam at x=1.
         assertEquals(4, countOccurrences(svg, "Q"));
-        assertTrue(svg.contains("Q0 0")); // top-left end
-        assertTrue(svg.contains("Q2 0")); // top-right end
-        assertFalse(svg.contains("Q1 ")); // seam stays square
+        assertTrue(svg.contains("Q10 10")); // top-left end
+        assertTrue(svg.contains("Q12 10")); // top-right end
+        assertFalse(svg.contains("Q11 ")); // seam stays square
         assertWellFormedXml(svg);
     }
 
     @Test
     void cornerRadiusControlsTheCurveOffsets() {
-        MatrixData matrixData = new MatrixData(1);
-        matrixData.setDark(0, 0, true);
+        MatrixData matrixData = new MatrixData(21);
+        matrixData.setDark(10, 10, true);
 
         QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
                 .moduleShape(ModuleShape.rounded(0.2))
@@ -121,8 +122,8 @@ class QRCodeSVGRendererTest {
 
         // Isolated module: all four corners rounded at radius 0.2.
         assertEquals(4, countOccurrences(svg, "Q"));
-        assertTrue(svg.contains("M0.2 0"));
-        assertTrue(svg.contains("Q1 0 1 0.2"));
+        assertTrue(svg.contains("M10.2 10"));
+        assertTrue(svg.contains("Q11 10 11 10.2"));
         assertWellFormedXml(svg);
     }
 
@@ -265,6 +266,20 @@ class QRCodeSVGRendererTest {
                 .build();
         String svg = new QRCodeSVGRenderer(style).render(matrixData, 2);
 
+        assertTrue(svg.contains("C"));
+        assertFalse(svg.contains("crispEdges"));
+        assertWellFormedXml(svg);
+    }
+
+    @Test
+    void customFinderShapeSwitchesToEvenOddCurvedPath() {
+        QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
+                .finderShape(FinderShape.circle())
+                .build();
+
+        String svg = new QRCodeSVGRenderer(style).render(new MatrixData(21), 10);
+
+        assertTrue(svg.contains("fill-rule=\"evenodd\""));
         assertTrue(svg.contains("C"));
         assertFalse(svg.contains("crispEdges"));
         assertWellFormedXml(svg);

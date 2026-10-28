@@ -1,8 +1,6 @@
 package com.qrlib.render;
 
 import com.qrlib.config.CenterImagePadShape;
-import com.qrlib.config.ModuleContext;
-import com.qrlib.config.ModuleShape;
 import com.qrlib.config.QRCodeStyleDefinitions;
 import com.qrlib.matrix.MatrixData;
 
@@ -11,7 +9,6 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.Ellipse2D;
-import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 
 public class QRCodeImageRenderer {
@@ -43,8 +40,8 @@ public class QRCodeImageRenderer {
 
         BufferedImage image = new BufferedImage(imageSize, imageSize, BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics = image.createGraphics();
-        boolean squareModules = style.getModuleShape() == ModuleShape.SQUARE;
-        if (!squareModules) {
+        boolean plainSquares = SymbolPath.isPlainSquares(style);
+        if (!plainSquares) {
             graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         }
@@ -56,7 +53,7 @@ public class QRCodeImageRenderer {
         graphics.fillRect(border * moduleSize, border * moduleSize, size * moduleSize, size * moduleSize);
 
         graphics.setColor(moduleColor);
-        if (squareModules) {
+        if (plainSquares) {
             for (int row = 0; row < size; row++) {
                 for (int col = 0; col < size; col++) {
                     if (matrix[row][col] == 1) {
@@ -66,7 +63,7 @@ public class QRCodeImageRenderer {
                 }
             }
         } else {
-            graphics.fill(buildModulesPath(matrix, border, moduleSize));
+            graphics.fill(SymbolPath.build(matrix, border, moduleSize, style));
         }
 
         if (style.getCenterImage() != null) {
@@ -75,20 +72,6 @@ public class QRCodeImageRenderer {
 
         graphics.dispose();
         return image;
-    }
-
-    private Path2D buildModulesPath(byte[][] matrix, int border, int moduleSize) {
-        ModuleShape moduleShape = style.getModuleShape();
-        Path2D.Double path = new Path2D.Double();
-        for (int row = 0; row < matrix.length; row++) {
-            for (int col = 0; col < matrix.length; col++) {
-                if (matrix[row][col] == 1) {
-                    path.append(moduleShape.create((col + border) * moduleSize, (row + border) * moduleSize,
-                            moduleSize, ModuleContext.at(matrix, row, col)), false);
-                }
-            }
-        }
-        return path;
     }
 
     /**

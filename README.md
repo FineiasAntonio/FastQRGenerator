@@ -119,6 +119,7 @@ QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
         .backgroundColor("#FFF")
         .borderThickness(4)      // quiet-zone width, in modules
         .moduleShape(ModuleShape.rounded(0.4)) // or SQUARE, dot(), diamond()
+        .finderShape(FinderShape.circle())     // or SQUARE, rounded(0.25)
         .build();
 
 qr.toImageBytes(ImageExtensions.PNG, 10, style);
@@ -131,11 +132,13 @@ Notes:
   background color.
 - `moduleShape(...)` picks the module geometry: `ModuleShape.SQUARE` (default),
   `rounded(radius)` (radius from 0 to 0.5 of the module), `dot()` or `diamond()`.
-  Non-square shapes are drawn antialiased; rounded runs of modules merge into a
-  single smooth shape rounded only at its ends, and `dot()`/`diamond()` keep the
-  three finder patterns square so readers can still locate the symbol.
-- Custom shapes implement `ModuleShape.create(...)`, which returns a `java.awt.Shape`;
-  the same implementation is used for PNG/JPEG/BMP and SVG output.
+  Non-square shapes are drawn antialiased, and rounded runs of modules merge into a
+  single smooth shape rounded only at its ends.
+- `finderShape(...)` styles the three corner finder patterns as a whole: `FinderShape.SQUARE`
+  (default), `rounded(radius)` (0 to 0.5 of the finder side) or `circle()`. Finders are
+  independent of `moduleShape`, so the module shape never makes them unreadable.
+- Custom shapes implement `ModuleShape.create(...)` or `FinderShape.create(...)`, which
+  return a `java.awt.Shape`; the same implementation is used for PNG/JPEG/BMP and SVG output.
 - Keep enough contrast between module and background colors — low-contrast
   symbols may not scan reliably.
 
