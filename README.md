@@ -23,7 +23,7 @@ construction, mask selection and rendering — with **zero runtime dependencies*
   byte-mode density, often fitting a smaller symbol.
 - **Automatic mask selection** following the ISO 18004 penalty rules.
 - **Styled rendering** — custom colors, border thickness and rounded modules.
-- **Multiple output formats** — PNG, JPG, JPEG, BMP, SVG, plus ANSI terminal printing.
+- **Multiple output formats** — PNG, JPEG, BMP, SVG, plus ANSI terminal printing.
 
 ## Requirements
 
@@ -74,25 +74,10 @@ try (FileOutputStream out = new FileOutputStream("qr.png")) {
 
 By default the **smallest version that fits the payload** is selected
 automatically, so you usually don't need to set one. To pin an explicit version
-(`V1`–`V40`)…
+(`V1`–`V40`):
 
 ```java
 new QRCodeGeneratorBuilder().version(QRCodeVersion.V10).build();
-```
-
-…or a named `QRCodeSize` preset:
-
-| Preset   | Version |
-|----------|---------|
-| `TINY`   | V1      |
-| `SMALL`  | V2      |
-| `MEDIUM` | V5      |
-| `LARGE`  | V10     |
-| `HUGE`   | V20     |
-| `MAX`    | V40     |
-
-```java
-new QRCodeGeneratorBuilder().size(QRCodeSize.MEDIUM).build();
 ```
 
 > When you pin a version, it must hold the payload — otherwise `generate(...)`
@@ -123,10 +108,7 @@ try (FileOutputStream out = new FileOutputStream("qr.png")) {
 byte[] png = qr.toImageBytes();
 
 // pick a format
-byte[] jpg = qr.toImageBytes(ImageExtensions.JPG);
-
-// pick a format and module size (pixels per module)
-byte[] scaled = qr.toImageBytes(ImageExtensions.PNG, 8);
+byte[] jpg = qr.toImageBytes(ImageExtensions.JPEG);
 ```
 
 ### Styling
@@ -136,7 +118,7 @@ QRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()
         .moduleColor("#1A1A2E")  // #RRGGBB or shorthand #RGB
         .backgroundColor("#FFF")
         .borderThickness(4)      // quiet-zone width, in modules
-        .cornerRadius(0.4)       // 0 (square) to 0.5 (fully round), as a fraction of the module
+        .moduleShape(ModuleShape.rounded(0.4)) // or SQUARE, dot(), diamond()
         .build();
 
 qr.toImageBytes(ImageExtensions.PNG, 10, style);
@@ -147,9 +129,13 @@ Notes:
 - Colors accept `#RRGGBB` or shorthand `#RGB` hex and are validated when set.
 - `borderColor(...)` tints the quiet zone; when not set it follows the
   background color.
-- `cornerRadius(...)` implies rounded modules; `roundedCorners(true)` uses the
-  maximum radius. Rounded modules are drawn antialiased, and connected runs of
-  modules merge into a single smooth shape rounded only at its ends.
+- `moduleShape(...)` picks the module geometry: `ModuleShape.SQUARE` (default),
+  `rounded(radius)` (radius from 0 to 0.5 of the module), `dot()` or `diamond()`.
+  Non-square shapes are drawn antialiased; rounded runs of modules merge into a
+  single smooth shape rounded only at its ends, and `dot()`/`diamond()` keep the
+  three finder patterns square so readers can still locate the symbol.
+- Custom shapes implement `ModuleShape.create(...)`, which returns a `java.awt.Shape`;
+  the same implementation is used for PNG/JPEG/BMP and SVG output.
 - Keep enough contrast between module and background colors — low-contrast
   symbols may not scan reliably.
 

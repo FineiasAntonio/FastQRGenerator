@@ -78,7 +78,7 @@
   const styleSrc = () => {
     const { qrText, moduleColor, bgColor, radius, border, ecc } = P;
     const txt = qrText.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    return 'QRCodeGenerator generator = new QRCodeGeneratorBuilder()\n        .eccLevel(ECCLevel.' + ecc + ')\n        .build();\n\nQRCode qr = generator.generate("' + txt + '");\n\nQRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()\n        .moduleColor("' + moduleColor + '")\n        .backgroundColor("' + bgColor + '")\n        .borderThickness(' + border + ')\n        .cornerRadius(' + radius + ')\n        .build();\n\nbyte[] png = qr.toImageBytes(ImageExtensions.PNG, 10, style);';
+    return 'QRCodeGenerator generator = new QRCodeGeneratorBuilder()\n        .eccLevel(ECCLevel.' + ecc + ')\n        .build();\n\nQRCode qr = generator.generate("' + txt + '");\n\nQRCodeStyleDefinitions style = QRCodeStyleDefinitions.builder()\n        .moduleColor("' + moduleColor + '")\n        .backgroundColor("' + bgColor + '")\n        .borderThickness(' + border + ')\n        .moduleShape(ModuleShape.rounded(' + radius + '))\n        .build();\n\nbyte[] png = qr.toImageBytes(ImageExtensions.PNG, 10, style);';
   };
   const renderQR = () => {
     const { qrText, moduleColor, bgColor, radius, border, ecc } = P;
